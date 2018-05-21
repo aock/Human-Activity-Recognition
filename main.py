@@ -3,6 +3,8 @@ np.random.seed(42)
 import tensorflow as tf
 tf.set_random_seed(42)
 
+import tensorflowjs as tfjs
+
 # for reproducibility
 # https://github.com/fchollet/keras/issues/2280
 session_conf = tf.ConfigProto(
@@ -51,3 +53,4 @@ model.fit(X_train,
 
 # Evaluate
 print(confusion_matrix(Y_test, model.predict(X_test)))
+tfjs.converters.save_keras_model(model, ".")

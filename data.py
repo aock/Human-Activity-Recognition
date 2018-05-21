@@ -22,10 +22,10 @@ def load_signals(subset):
     signals_data = []
 
     for signal in SIGNALS:
-        filename = f'{DATADIR}/{subset}/Inertial Signals/{signal}_{subset}.txt'
+        filename = '%s/%s/Inertial Signals/%s_%s.txt'%(DATADIR,subset,signal,subset)
         signals_data.append(
             _read_csv(filename).as_matrix()
-        ) 
+        )
 
     # Transpose is used to change the dimensionality of the output,
     # aggregating the signals by combination of sample/timestep.
@@ -35,11 +35,11 @@ def load_signals(subset):
 def load_y(subset):
     """
     The objective that we are trying to predict is a integer, from 1 to 6,
-    that represents a human activity. We return a binary representation of 
+    that represents a human activity. We return a binary representation of
     every sample objective as a 6 bits vector using One Hot Encoding
     (https://pandas.pydata.org/pandas-docs/stable/generated/pandas.get_dummies.html)
     """
-    filename = f'{DATADIR}/{subset}/y_{subset}.txt'
+    filename = '%s/%s/y_%s.txt'%(DATADIR,subset,subset)
     y = _read_csv(filename)[0]
 
     return pd.get_dummies(y).as_matrix()
