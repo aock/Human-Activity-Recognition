@@ -51,8 +51,10 @@ else:
 
 
 model = Sequential()
-model.add(LSTM(n_hidden, input_shape=(timesteps, input_dim)))
+model.add(LSTM(n_hidden, return_sequences=True, input_shape=(timesteps, input_dim)))
+model.add(LSTM(n_hidden))
 model.add(Dropout(0.5))
+model.add(Dense(n_hidden, activation='sigmoid'))
 model.add(Dense(n_classes, activation='sigmoid'))
 
 model.compile(loss='categorical_crossentropy',
