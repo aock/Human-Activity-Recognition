@@ -10,8 +10,8 @@ ACTIVITIES = {
     5: 'LAYING',
 }
 
-def confusion_matrix(Y_true, Y_pred):
-    Y_true = pd.Series([ACTIVITIES[y] for y in np.argmax(Y_true, axis=1)])
-    Y_pred = pd.Series([ACTIVITIES[y] for y in np.argmax(Y_pred, axis=1)])
+def confusion_matrix(Y_true, Y_pred, activities = ACTIVITIES):
+    Y_true = pd.Series([activities[y] for y in np.argmax(Y_true, axis=1)])
+    Y_pred = pd.Series([activities[y] for y in np.argmax(Y_pred, axis=1)])
 
     return pd.crosstab(Y_true, Y_pred, rownames=['True'], colnames=['Pred'])

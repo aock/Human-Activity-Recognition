@@ -7,16 +7,6 @@ DATADIR = 'WISDM_RAW'
 
 FILENAME = 'WISDM_RAW/WISDM_raw.txt'
 
-TRAINING_DATA = 0.8
-
-N_TIME_STEPS = 200
-
-N_FEATURES = 3
-
-step = 20
-
-RANDOM_SEED = 42
-
 LABELS = {
     'Walking' : 0,
     'Jogging': 1,
@@ -29,35 +19,48 @@ LABELS = {
 def one_hot(num):
     return [int(i == num) for i in range(len(LABELS))]
 
-def load_data():
+def load_data(step=20,
+              random_seed=42,
+              n_features = 3,
+              test_size = 0.2,
+              n_time_steps = 200,
+              filename='WISDM_RAW/WISDM_raw.txt'):
+    print("read data from %s ..." % filename) 
     columns = ['user','activity','timestamp', 'x-axis', 'y-axis', 'z-axis']
-    df = pd.read_csv(FILENAME, header = None, names = columns)
+    df = pd.read_csv(filename, header = None, names = columns)
 
     segments = []
     labels = []
 
-    for i in range(0, len(df) - N_TIME_STEPS, step):
-        xs = df['x-axis'].values[i: i + N_TIME_STEPS]
-        ys = df['y-axis'].values[i: i + N_TIME_STEPS]
-        zs = df['z-axis'].values[i: i + N_TIME_STEPS]
+    print("number of samples found: %d" % len(df))
+    print("reorganize data...")
+    
+
+    for i in range(0, len(df) - n_time_steps, step):
+        xs = df['x-axis'].values[i: i + n_time_steps]
+        ys = df['y-axis'].values[i: i + n_time_steps]
+        zs = df['z-axis'].values[i: i + n_time_steps]
         try:
-            label = stats.mode(df['activity'][i: i + N_TIME_STEPS])[0][0]
+            label = stats.mode(df['activity'][i: i + n_time_steps])[0][0]
             if label not in LABELS:
                 continue
+            else:
+                num = LABELS[label]
+                label = one_hot(num)
         except:
             #print('error in line ' + str(i) + '. skipping...')
             continue
         segments.append([xs, ys, zs])
         labels.append(label)
 
-    reshaped_segments = np.asarray(segments, dtype= np.float32).reshape(-1, N_TIME_STEPS, N_FEATURES)
-    labels = np.asarray(pd.get_dummies(labels), dtype = np.float32)
+    reshaped_segments = np.asarray(segments, dtype= np.float32).reshape(-1, n_time_steps, n_features)
+    labels = np.asarray(labels, dtype = np.float32)
     print(reshaped_segments.shape)
     print(labels.shape)
 
 
     X_train, X_test, y_train, y_test = train_test_split(
-        reshaped_segments, labels, test_size=0.2, random_state=RANDOM_SEED)
+        reshaped_segments, labels, test_size=test_size, random_state=random_seed)
 
     return X_train, X_test, y_train, y_test
 

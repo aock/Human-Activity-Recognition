@@ -1,0 +1,7 @@
+{
+    "epochs": 1000,
+    "optimizer": {
+        "name": "adam",
+        "lr": 0.0025
+    }
+}
