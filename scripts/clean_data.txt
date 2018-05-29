@@ -1,0 +1,2 @@
+# vim command to delete unhealthy lines
+g!/^\d\+,.\+,\d\+,.\+,.\+,.\+$/d
