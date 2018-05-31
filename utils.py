@@ -2,12 +2,8 @@ import pandas as pd
 import numpy as np
 
 ACTIVITIES = {
-    0: 'WALKING',
-    1: 'WALKING_UPSTAIRS',
-    2: 'WALKING_DOWNSTAIRS',
-    3: 'SITTING',
-    4: 'STANDING',
-    5: 'LAYING',
+    0: 'NOSTAIRS',
+    1: 'STAIRS'
 }
 
 def confusion_matrix(Y_true, Y_pred, activities = ACTIVITIES):

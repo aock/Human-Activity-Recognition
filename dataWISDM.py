@@ -8,12 +8,13 @@ DATADIR = 'WISDM_RAW'
 FILENAME = 'WISDM_RAW/WISDM_raw.txt'
 
 LABELS = {
-    'Walking' : 0,
-    'Jogging': 1,
-    'Stairs': 2,
-    'Sitting': 3,
-    'Standing': 4,
-    'LyingDown' : 5
+    'NoStairs' : 0,
+    'Stairs' : 1
+}
+
+LABEL_COUNTER = {
+    0 : 0.0,
+    1 : 0.0
 }
 
 def one_hot(num):
@@ -25,7 +26,7 @@ def load_data(step=20,
               test_size = 0.2,
               n_time_steps = 200,
               filename='WISDM_RAW/WISDM_raw.txt'):
-    print("read data from %s ..." % filename) 
+    print("read data from %s ..." % filename)
     columns = ['user','activity','timestamp', 'x-axis', 'y-axis', 'z-axis']
     df = pd.read_csv(filename, header = None, names = columns)
 
@@ -34,7 +35,7 @@ def load_data(step=20,
 
     print("number of samples found: %d" % len(df))
     print("reorganize data...")
-    
+
 
     for i in range(0, len(df) - n_time_steps, step):
         xs = df['x-axis'].values[i: i + n_time_steps]
@@ -46,6 +47,7 @@ def load_data(step=20,
                 continue
             else:
                 num = LABELS[label]
+                LABEL_COUNTER[num] += 1.0
                 label = one_hot(num)
         except:
             #print('error in line ' + str(i) + '. skipping...')
@@ -62,7 +64,7 @@ def load_data(step=20,
     X_train, X_test, y_train, y_test = train_test_split(
         reshaped_segments, labels, test_size=test_size, random_state=random_seed)
 
-    return X_train, X_test, y_train, y_test
+    return X_train, X_test, y_train, y_test, LABEL_COUNTER
 
 if __name__ == "__main__":
     load_data()

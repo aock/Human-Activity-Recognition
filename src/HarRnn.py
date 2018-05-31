@@ -10,6 +10,12 @@ import json
 import sys
 from pprint import pprint
 
+label_weights = np.array([1/100, 30])
+w = K.variable(value=label_weights, dtype='float32', name='loss_weights')
+
+def meanSquaredWeightedError(target, output):
+    return K.mean( K.square(w * (target - output) ) )
+
 class Elu(ELU):
     def __init__(self, **kwargs):
         self.__name__ = "ELU"
@@ -53,9 +59,7 @@ class HarRnn():
             sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
             K.set_session(sess)
 
-        self.init()
-
-    def init(self):
+    def gen(self):
         self.updateModel()
         self.updateOptimizer()
         self.compileModel()
@@ -137,12 +141,17 @@ class HarRnn():
                                     amsgrad=opt_cfg['amsgrad']
                                 )
 
-
+    def updateLossFunction(self):
+        pass
 
     def compileModel(self):
+
         self.model.compile(loss='categorical_crossentropy',
                   optimizer=self.optimizer,
                   metrics=['accuracy'])
+        # self.model.compile(loss=meanSquaredWeightedError,
+        #           optimizer=self.optimizer,
+        #           metrics=['accuracy', meanSquaredWeightedError])
 
     def getModel(self):
         return self.model

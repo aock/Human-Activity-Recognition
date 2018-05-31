@@ -4,5 +4,10 @@
         "name": "adam",
         "lr": 0.0025
     },
-    "early_val_acc": 0.95
+    "early_stopping": {
+        "val": 0.1,
+        "bigger": false,
+        "monitor": "val_loss"
+    },
+    "class_weight" : "auto"
 }
