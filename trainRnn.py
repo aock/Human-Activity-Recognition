@@ -99,7 +99,7 @@ if __name__ == "__main__":
 
     from dataWISDM import load_data
 
-    X_train, X_test, Y_train, Y_test, class_counter = load_data(filename='WISDM_RAW/WISDM_raw_two_labels.txt')
+    X_train, X_test, Y_train, Y_test, class_counter = load_data(filename='pretraining_data/data.txt')
 
     # WISDM dataset
     config['timesteps'] = X_train.shape[1]
@@ -121,7 +121,7 @@ if __name__ == "__main__":
             cw = config['class_weight']
         else:
 
-            cw = create_class_weight(class_counter)
+            cw = create_class_weight(class_counter, mu=1.0)
             print("using automatically determined class weights:")
             pprint(cw)
 
