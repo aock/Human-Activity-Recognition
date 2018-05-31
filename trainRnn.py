@@ -50,7 +50,10 @@ class EarlyStopping(callbacks.Callback):
                 print("Epoch %05d: early stopping THR" % epoch)
             self.model.stop_training = True
         elif self.verbose > 0:
-            print(self.monitor + ": %f <= %f" % (current,self.value))
+            if self.bigger:
+                print(self.monitor + ": %f <= %f" % (current,self.value))
+            else:
+                print(self.monitor + ": %f >= %f" % (current,self.value))
 
 
 if __name__ == "__main__":
