@@ -11,6 +11,7 @@ import sys
 from pprint import pprint
 from utils import confusion_matrix
 from src.HarRnn import HarRnn, meanSquaredWeightedError
+from src.dataManager import DataManager
 import argparse
 import os
 from src.saveFunctions import *
@@ -100,9 +101,14 @@ if __name__ == "__main__":
     ####### data handling start
     ##################################
 
-    from dataWISDM import load_data
 
-    X_train, X_test, Y_train, Y_test, class_counter = load_data(filename='pretraining_data/data.txt')
+
+    dm = DataManager(datafolder='data')
+    X_train, X_test, Y_train, Y_test, class_counter = dm.load_all()
+
+    # from dataWISDM import load_data
+
+    # X_train, X_test, Y_train, Y_test, class_counter = load_data(filename='pretraining_data/data.txt')
 
     # WISDM dataset
     config['timesteps'] = X_train.shape[1]

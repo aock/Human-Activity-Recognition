@@ -102,10 +102,10 @@ class DataManager():
                     y_train = y_train_tmp
                     y_test = y_test_tmp
                 else:
-                    np.concatenate((X_train, X_train_tmp), axis=0)
-                    np.concatenate((X_test, X_test_tmp), axis=0)
-                    np.concatenate((y_train, y_train_tmp), axis=0)
-                    np.concatenate((y_test, y_test_tmp), axis=0)
+                    X_train = np.concatenate((X_train, X_train_tmp), axis=0)
+                    X_test = np.concatenate((X_test, X_test_tmp), axis=0)
+                    y_train = np.concatenate((y_train, y_train_tmp), axis=0)
+                    y_test = np.concatenate((y_test, y_test_tmp), axis=0)
 
         return X_train, X_test, y_train, y_test, self.LABEL_COUNTER
 
