@@ -1,11 +1,12 @@
 {
-    "epochs": 1000,
+    "batch_size": 2048,
+    "epochs": 2000,
     "optimizer": {
         "name": "adam",
         "lr": 0.0025
     },
     "early_stopping": {
-        "val": 0.1,
+        "val": 0.05,
         "bigger": false,
         "monitor": "val_loss"
     },
