@@ -222,4 +222,5 @@ if __name__ == "__main__":
         # save tensorflowjs model
         print("exporting tfjs model...")
         tfjs.converters.save_keras_model(model, args.export)
-        print(confusion_matrix(Y_test, model.predict(X_test)))
+
+    print(confusion_matrix(Y_test, model.predict(X_test)))

@@ -8,10 +8,6 @@ import logging
 import sys
 from tqdm import tqdm
 
-DATADIR = 'WISDM_RAW'
-
-FILENAME = 'WISDM_RAW/WISDM_raw.txt'
-
 class DataManager():
 
     def __init__(self, step=20,
@@ -54,7 +50,7 @@ class DataManager():
                         1 : 0.0
                     }
 
-        files = [filename for filename in glob.iglob(self.datafolder + '/**/*.txt', recursive=True)]
+        files = [filename for filename in glob.iglob(self.datafolder + '/**/*.tdat', recursive=True)]
 
         for filename in tqdm(files):
             # print("read data from %s ..." % filename)
@@ -74,6 +70,10 @@ class DataManager():
                 try:
                     label = stats.mode(df['activity'][i: i + self.n_time_steps])[0][0]
 
+                    # if label == 'Stairs':
+                    #     print('Stairs')
+                    # else:
+                    #     print('-')
                     if label not in self.LABELS:
                         continue
                     else:

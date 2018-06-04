@@ -1,0 +1,14 @@
+{
+    "batch_size": 2048,
+    "epochs": 3,
+    "optimizer": {
+        "name": "adam",
+        "lr": 0.0025
+    },
+    "early_stopping": {
+        "val": 0.05,
+        "bigger": false,
+        "monitor": "val_loss"
+    },
+    "class_weight" : "auto"
+}

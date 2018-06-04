@@ -1,6 +1,6 @@
 
 IN_FILE = './pretraining_data/data3.txt'
-OUT_TEMPLATE = './export/WISDM_ar/WISDM_at_%d.txt'
+OUT_TEMPLATE = './export/WISDM_ar/WISDM_at_%d.tdat'
 
 def gen_filename(i):
     return OUT_TEMPLATE % i
