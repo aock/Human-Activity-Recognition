@@ -15,7 +15,8 @@ class DataManager():
                 n_features = 3,
                 test_size = 0.2,
                 n_time_steps = 200,
-                datafolder='data'):
+                datafolder='data',
+                additionalAddSmall=0):
 
         self.step = step
         self.random_seed = random_seed
@@ -23,6 +24,7 @@ class DataManager():
         self.test_size = test_size
         self.n_time_steps = n_time_steps
         self.datafolder = datafolder
+        self.additionalAddSmall = additionalAddSmall
         self.columns = ['activity', 'x-axis', 'y-axis', 'z-axis']
 
         self.LABELS = {
@@ -67,6 +69,9 @@ class DataManager():
                 xs = df['x-axis'].values[i: i + self.n_time_steps]
                 ys = df['y-axis'].values[i: i + self.n_time_steps]
                 zs = df['z-axis'].values[i: i + self.n_time_steps]
+
+                addMulti = False
+
                 try:
                     label = stats.mode(df['activity'][i: i + self.n_time_steps])[0][0]
 
@@ -78,14 +83,26 @@ class DataManager():
                         continue
                     else:
                         num = self.LABELS[label]
-                        self.LABEL_COUNTER[num] += 1.0
+                        if num == 1:
+                            addMulti = True
+                            self.LABEL_COUNTER[num] += 1.0 + self.additionalAddSmall
+                        else:
+                            self.LABEL_COUNTER[num] += 1.0
                         label = self.one_hot(num)
                 except Exception as e:
                     print(e)
                     print('error in line ' + str(i) + '. skipping...')
                     continue
+                
+
                 segments.append([xs, ys, zs])
                 labels.append(label)
+                if addMulti:
+                    for j in range(self.additionalAddSmall):
+                        segments.append([xs,ys,zs])
+                        labels.append(label)
+
+                
 
             reshaped_segments = np.asarray(segments, dtype= np.float32).reshape(-1, self.n_time_steps, self.n_features)
             labels = np.asarray(labels, dtype = np.float32)

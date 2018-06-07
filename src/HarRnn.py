@@ -3,7 +3,7 @@ import tensorflow as tf
 import tensorflowjs as tfjs
 from keras import backend as K
 from keras.models import Sequential
-from keras.layers import LSTM, ELU, Activation
+from keras.layers import LSTM, ELU, Activation, TimeDistributed
 from keras.layers.core import Dense, Dropout
 from keras import optimizers, callbacks, regularizers
 import json
@@ -30,7 +30,7 @@ class HarRnn():
     def __init__(self,
                  config={'batch_size': 1024,
                         'seq_size': 200,
-                        'n_hidden': 64,
+                        'n_hidden': [64,64,64],
                         'dataset': 'WISDM',
                         'optimizer': {
                             'name': 'rmsprop'
@@ -72,19 +72,20 @@ class HarRnn():
         input_dim = self.config['input_dim']
         n_classes = self.config['n_classes']
 
+
         # build model
         elu = Elu(alpha=1.0)
 
         self.model = Sequential()
-        self.model.add(LSTM(n_hidden, return_sequences=True, input_shape=(timesteps, input_dim)))
-        self.model.add(LSTM(n_hidden, recurrent_regularizer=regularizers.l1(0.01)))
+        self.model.add(LSTM(n_hidden[0], return_sequences=True, input_shape=(timesteps, input_dim)))
+        self.model.add(LSTM(n_hidden[1], recurrent_regularizer=regularizers.l1(0.01)))
 
         self.model.add(Dropout(0.5))
 
         # self.model.add(Dense(n_hidden,
         #                 kernel_regularizer=regularizers.l2(0.01),
         #                 activity_regularizer=regularizers.l1(0.01)))
-        self.model.add(Dense(n_hidden)) # war vorher
+        self.model.add(Dense(n_hidden[2]) ) # war vorher
         self.model.add(ELU(alpha=1.0))
         self.model.add(Dropout(0.1))
         self.model.add(Dense(n_classes, activation='softmax' ))

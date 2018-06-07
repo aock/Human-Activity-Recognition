@@ -36,6 +36,9 @@ if __name__ == "__main__":
     dm = DataManager(datafolder=sampleDir, test_size=0.0)
     X, _, Y, _, class_counter = dm.load_all()
 
+    print('class_counter: ')
+    pprint(class_counter)
+
     pred = 0
     try:
         pred = model.predict(X)

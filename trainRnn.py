@@ -65,17 +65,20 @@ if __name__ == "__main__":
     parser.add_argument('--update', type=str, help='update model: specify folfer containing weights.h5 and arch.json')
     parser.add_argument('--save', type=str, help='model name. Generates folder containing arch.json and weights.h5')
     parser.add_argument('--export', type=str, help='model name. Generates tfjs export json file in dir named by model name')
+    
+    parser.add_argument('-d','--dataDir', type=str, help='path to training data (.tdat)', required=False) 
     args = parser.parse_args()
 
     config = {
                 'epochs': 60,
                 'batch_size': 1024,
                 'seq_size': 200,
-                'n_hidden': 64,
+                'n_hidden': [64,64,64],
                 'dataset': 'WISDM',
                 'optimizer': {
                     'name': 'rmsprop'
-                }
+                },
+                'additionalAddSmall': 0
              }
 
     if args.config:
@@ -101,9 +104,12 @@ if __name__ == "__main__":
     ####### data handling start
     ##################################
 
+    datafolder = 'data'
 
+    if args.dataDir:
+        datafolder = args.dataDir
 
-    dm = DataManager(datafolder='data')
+    dm = DataManager(datafolder=datafolder, additionalAddSmall=config['additionalAddSmall'])
     X_train, X_test, Y_train, Y_test, class_counter = dm.load_all()
 
     # from dataWISDM import load_data
@@ -111,6 +117,8 @@ if __name__ == "__main__":
     # X_train, X_test, Y_train, Y_test, class_counter = load_data(filename='pretraining_data/data.txt')
 
     # WISDM dataset
+    print("INPUT SHAPE")
+    print(X_train.shape)
     config['timesteps'] = X_train.shape[1]
     config['input_dim'] = X_train.shape[2]
     config['n_classes'] = Y_train.shape[1]
@@ -150,6 +158,7 @@ if __name__ == "__main__":
         hr = HarRnn(config=config, debug=True, random_seed=42)
         hr.gen()
         model = hr.getModel()
+        print(model.summary())
 
     ##################################
     ###### training ##################
