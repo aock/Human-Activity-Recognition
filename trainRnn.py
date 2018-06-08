@@ -1,7 +1,7 @@
 import numpy as np
-np.random.seed(42)
+# np.random.seed(42)
 import tensorflow as tf
-tf.set_random_seed(42)
+# tf.set_random_seed(42)
 
 import tensorflowjs as tfjs
 from keras import backend as K
@@ -65,15 +65,15 @@ if __name__ == "__main__":
     parser.add_argument('--update', type=str, help='update model: specify folfer containing weights.h5 and arch.json')
     parser.add_argument('--save', type=str, help='model name. Generates folder containing arch.json and weights.h5')
     parser.add_argument('--export', type=str, help='model name. Generates tfjs export json file in dir named by model name')
-    
-    parser.add_argument('-d','--dataDir', type=str, help='path to training data (.tdat)', required=False) 
+
+    parser.add_argument('-d','--dataDir', type=str, help='path to training data (.tdat)', required=False)
     args = parser.parse_args()
 
     config = {
                 'epochs': 60,
                 'batch_size': 1024,
                 'seq_size': 200,
-                'n_hidden': [64,64,64],
+                'n_hidden': [64,64,64,64],
                 'dataset': 'WISDM',
                 'optimizer': {
                     'name': 'rmsprop'
@@ -89,15 +89,15 @@ if __name__ == "__main__":
             config.update(data)
 
 
-    # for reproducibility
-    # https://github.com/fchollet/keras/issues/2280
-    session_conf = tf.ConfigProto(
-        intra_op_parallelism_threads=1,
-        inter_op_parallelism_threads=1
-    )
+    # # for reproducibility
+    # # https://github.com/fchollet/keras/issues/2280
+    # session_conf = tf.ConfigProto(
+    #     intra_op_parallelism_threads=1,
+    #     inter_op_parallelism_threads=1
+    # )
 
 
-    sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
+    sess = tf.Session(graph=tf.get_default_graph())
     K.set_session(sess)
 
     ###################################
