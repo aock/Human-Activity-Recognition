@@ -3,8 +3,11 @@ import tensorflow as tf
 import tensorflowjs as tfjs
 from keras import backend as K
 from keras.models import Sequential
-from keras.layers import LSTM, ELU, Activation, TimeDistributed, Conv2D, Conv1D, LocallyConnected1D, MaxPooling1D, GlobalAveragePooling1D, BatchNormalization
-from keras.layers import add
+from keras.layers import LSTM, ELU, Activation
+from keras.layers import Conv1D, LocallyConnected1D, MaxPooling1D
+from keras.layers import GlobalAveragePooling1D, BatchNormalization
+from keras.layers import add, Input, Flatten
+from keras.layers import concatenate
 from keras.layers.core import Dense, Dropout
 from keras import optimizers, callbacks, regularizers
 import keras
@@ -67,33 +70,133 @@ class HarRnn():
         self.compileModel()
 
     def updateModel(self):
-        #self.rcnn()
-        #self.cnn()
-        self.rcnn2()
+        #self.concatCRNN()
+        self.seqCRNN()
+        
+    def seqCRNN(self):
+        
+        timesteps = self.config['timesteps']
+        input_dim = self.config['input_dim']
 
-    def cnn(self):
-        # collect information
+        network = self.config["network"]
 
+        reg = True
+        if "reg" in network and network["reg"] == False:
+            reg = False
+
+        input = Input(shape=(timesteps, input_dim))
+ 
+        # CNN
+        cnn_out = None
+
+        if "cnn" in network:
+            cnn_filters = self.config["network"]["cnn"]
+            cnn_out = self.cnn(input, cnn_filters, reg)
+        else:
+            cnn_out = input
+        
+        # RNN after CNN 
+        rnn_out = None
+        if "rnn" in network:
+            rnn_size = self.config["network"]["rnn"]
+            rnn_out = self.rnn(cnn_out, rnn_size, reg)
+        else:
+            rnn_out = cnn_out
+        
+        # DNN after RNN
+        dnn_out = None
+        if "dnn" in network:
+            dnn_size = self.config["network"]["dnn"]
+            dnn_out = self.dnn(rnn_out, dnn_size, reg)
+        else:
+            dnn_out = rnn_out
+
+        
+        out = Activation("softmax")(dnn_out)
+
+        self.model = keras.models.Model(inputs=[input], outputs=out)
+
+
+    def concatCRNN(self):
         n_hidden = self.config['n_hidden']
         timesteps = self.config['timesteps']
         input_dim = self.config['input_dim']
         n_classes = self.config['n_classes']
+         
+        input = Input(shape=(timesteps, input_dim))
 
+        # RNN
+        rnn_size = [64,64]
+        rnn_out = self.rnn(input, rnn_size)
+        
+        # DNN after RNN
+        rdnn_size = [32,8]
+        rdnn_out = self.dnn(rnn_out, rdnn_size)
+
+        # CNN
+        cnn_filters = [(64,3),(32,3),(0,3)]
+        cnn_out = self.cnn(input, cnn_filters)
+        
+        # DNN after RNN
+        cdnn_size = [32,8]
+        cdnn_out = Flatten()(self.dnn(cnn_out, cdnn_size))
+
+        # merge
+        concat = concatenate([rdnn_out,cdnn_out])
+
+        # dnn after concat
+        dnn_size = [16,16,2]
+        dnn_out = self.dnn(concat, dnn_size)
+
+
+        self.model = keras.models.Model(inputs=[input], outputs=dnn_out)
+
+
+    def rnn(self, input, rnn_size=[64,32], reg=True):
+        # build model
+
+        lstm_l = [input]
+        for i in range(len(rnn_size)-1):
+            lstm_l.append(LSTM(rnn_size[i],
+                            return_sequences=True)
+                            (lstm_l[-1]))
+
+        if reg:
+            lstm_l.append(LSTM(rnn_size[-1], recurrent_regularizer=regularizers.l1(0.01))(lstm_l[-1]) )
+            lstm_l.append(Dropout(0.5)(lstm_l[-1]) )
+        else:
+            lstm_l.append(LSTM(rnn_size[-1])(lstm_l[-1]) )
+
+
+        return lstm_l[-1]
+
+    def dnn(self, input, n_hidden=[32,2], reg=True):
+        dnn_l = [input]
+
+        for i in range(len(n_hidden)-1):
+            dnn_l.append( Dense(n_hidden[i])(dnn_l[-1]) )
+            dnn_l.append( ELU(alpha=0.1)(dnn_l[-1]))
+            if reg:
+                dnn_l.append( Dropout(0.5)(dnn_l[-1]))
+
+        dnn_l.append(Dense(n_hidden[-1])(dnn_l[-1]) )
+
+        return dnn_l[-1]
+
+    def cnn(self, input, filters=[(32,3),(32,3),(64,3),(64,3)], reg=True):
+        # collect information
+
+        cnn_l = [input]
+
+        for i in range(len(filters)):
+            if filters[i][0] > 0:
+                cnn_l.append(Conv1D(filters[i][0], filters[i][1])(cnn_l[-1]))
+                cnn_l.append(Activation('relu')(cnn_l[-1]))
+            else:
+                cnn_l.append(MaxPooling1D(filters[i][1])(cnn_l[-1]))
 
         # build model
-        elu = Elu(alpha=1.0)
-
-        self.model = Sequential()
-        self.model.add(Conv1D(n_hidden[0], 3, input_shape=(timesteps, input_dim ) ) )
-        self.model.add(BatchNormalization())
-        self.model.add(Activation('relu'))
-        self.model.add(Conv1D(n_hidden[1], 3, activation='relu'))
-        self.model.add(MaxPooling1D(3))
-        self.model.add(Conv1D(n_hidden[2], 3, activation='relu'))
-        self.model.add(Conv1D(n_hidden[3], 3, activation='relu'))
-        self.model.add(GlobalAveragePooling1D())
-        self.model.add(Dropout(0.5))
-        self.model.add(Dense(n_classes, activation='sigmoid' ))
+        return cnn_l[-1]
 
     def rcnn(self):
         # collect information
@@ -108,14 +211,17 @@ class HarRnn():
         elu = Elu(alpha=1.0)
 
         self.model = Sequential()
-        self.model.add(Conv1D(n_hidden[0], 5, input_shape=(timesteps, input_dim ), activation='relu') )
-        self.model.add(Conv1D(n_hidden[1], 3, activation='relu'))
-        self.model.add(MaxPooling1D(3))
-        self.model.add(LSTM(n_hidden[2], recurrent_regularizer=regularizers.l1(0.01)))
+        self.model.add(Conv1D(32, 5, input_shape=(timesteps, input_dim) ))
+        #self.model.add(BatchNormalization())
+        #self.model.add(Activation('relu'))
+        #self.model.add(Conv1D(32, 3, activation='relu'))
+        #self.model.add(MaxPooling1D(3))
+        self.model.add(LSTM(64, return_sequences=True)) 
+        self.model.add(LSTM(32, recurrent_regularizer=regularizers.l1(0.01)))
         self.model.add(Dropout(0.5))
-        self.model.add(Dense(n_hidden[3]) ) # war vorher
+        self.model.add(Dense(8) ) # war vorher
         self.model.add(ELU(alpha=1.0))
-        self.model.add(Dropout(0.1))
+        self.model.add(Dropout(0.5))
         self.model.add(Dense(n_classes, activation='softmax' ))
 
     def rcnn2(self):
