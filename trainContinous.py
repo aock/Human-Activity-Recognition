@@ -101,8 +101,6 @@ if __name__ == "__main__":
 
     dm = DataManager(datafolder=datafolder, additionalAddSmall=config['additionalAddSmall'])
 
-
-    model_set = False
     model = None
 
     training_counter = 1
@@ -113,6 +111,24 @@ if __name__ == "__main__":
         data_per_day = config["data_per_day"]
 
 
+    try:
+        hr = HarRnn(config=config, debug=True)
+        hr.updateOptimizer()
+
+        model = readArch(args.model)
+        readWeights(model, args.model)
+
+        model.compile(loss='categorical_crossentropy',
+                optimizer=hr.optimizer,
+                metrics=['accuracy'])
+        print("Existing model loaded")
+    except:
+        hr = HarRnn(config=config, debug=True)
+        hr.gen()
+        model = hr.getModel()
+        print("Train not existing model")
+        print(model.summary())
+
 
     while(True):
 
@@ -120,10 +136,6 @@ if __name__ == "__main__":
         print("data samples to learn: " + str(data_per_day))
 
         X_train, X_test, Y_train, Y_test, class_counter = dm.load_random(num_data=data_per_day)
-
-        # from dataWISDM import load_data
-
-        # X_train, X_test, Y_train, Y_test, class_counter = load_data(filename='pretraining_data/data.txt')
 
         # WISDM dataset
         print("INPUT SHAPE")
@@ -151,27 +163,7 @@ if __name__ == "__main__":
                 pprint(cw)
 
 
-        if not model_set:
-            try:
-                
-                hr = HarRnn(config=config, debug=True)
-                hr.updateOptimizer()
 
-                model = readArch(args.model)
-                readWeights(model, args.model)
-
-                model.compile(loss='categorical_crossentropy',
-                        optimizer=hr.optimizer,
-                        metrics=['accuracy'])
-                print("Existing model loaded")
-            except:
-                hr = HarRnn(config=config, debug=True)
-                hr.gen()
-                model = hr.getModel()
-                print("Train not existing model")
-                print(model.summary())
-
-            model_set = True
 
         ##################################
         ###### training ##################
