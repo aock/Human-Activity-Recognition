@@ -6,6 +6,7 @@ from pprint import pprint
 from dataWISDM import load_data
 from src.dataManager import DataManager
 import numpy as np
+import tensorflowjs as tfjs
 
 from utils import confusion_matrix
 
@@ -15,6 +16,7 @@ if __name__ == "__main__":
     parser.add_argument('-m','--model', type=str, help='model name', required=True)
     parser.add_argument('-d','--sampleDir', type=str, help='path to dir with samples (.tdat)', required=True)
     parser.add_argument('-l','--labelFile', type=str, help='path to json label file.', required=True )
+    parser.add_argument('-e','--export', type=str, help='model name to export model as json', required=False)
 
     args = parser.parse_args()
 
@@ -56,4 +58,8 @@ if __name__ == "__main__":
     print(ratio_total)
 
     print(confusion_matrix(Y, pred))
+
+    if args.export:
+        print("exporting tfjs model...")
+        tfjs.converters.save_keras_model(model, args.export)
 
