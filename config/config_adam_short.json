@@ -18,6 +18,6 @@
         "monitor": "val_loss"
     },
     "class_weight" : "auto",
-    "additionalAddSmall": 3
-
+    "additionalAddSmall": 3,
+    "data_per_day":100000
 }

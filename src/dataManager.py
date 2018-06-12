@@ -7,6 +7,7 @@ import traceback
 import logging
 import sys
 from tqdm import tqdm
+from random import shuffle
 
 class DataManager():
 
@@ -93,7 +94,7 @@ class DataManager():
                     print(e)
                     print('error in line ' + str(i) + '. skipping...')
                     continue
-                
+
 
                 segments.append([xs, ys, zs])
                 labels.append(label)
@@ -102,7 +103,7 @@ class DataManager():
                         segments.append([xs,ys,zs])
                         labels.append(label)
 
-                
+
 
             reshaped_segments = np.asarray(segments, dtype= np.float32).reshape(-1, self.n_time_steps, self.n_features)
             labels = np.asarray(labels, dtype = np.float32)
@@ -125,6 +126,106 @@ class DataManager():
                     y_test = np.concatenate((y_test, y_test_tmp), axis=0)
 
         return X_train, X_test, y_train, y_test, self.LABEL_COUNTER
+
+    def load_random(self, num_data=100000):
+        X_train = None
+        X_test = None
+        y_train = None
+        y_test = None
+
+        self.LABEL_COUNTER = {
+                        0 : 0.0,
+                        1 : 0.0
+                    }
+
+        files = [filename for filename in glob.iglob(self.datafolder + '/**/*.tdat', recursive=True)]
+
+        shuffle(files)
+
+        old_num_data_collected = 0
+        num_data_collected = 0
+
+        with tqdm(total=num_data) as pbar:
+
+            for filename in files:
+
+                # print("read data from %s ..." % filename)
+                df = pd.read_csv(filename, header = None, names = self.columns)
+
+                segments = []
+                labels = []
+
+                # print("number of samples found: %d" % len(df))
+                # print("reorganize data...")
+
+                for i in range(0, len(df) - self.n_time_steps, self.step):
+                    old_num_data_collected = num_data_collected
+
+                    xs = df['x-axis'].values[i: i + self.n_time_steps]
+                    ys = df['y-axis'].values[i: i + self.n_time_steps]
+                    zs = df['z-axis'].values[i: i + self.n_time_steps]
+
+                    addMulti = False
+
+                    try:
+                        label = stats.mode(df['activity'][i: i + self.n_time_steps])[0][0]
+
+                        # if label == 'Stairs':
+                        #     print('Stairs')
+                        # else:
+                        #     print('-')
+                        if label not in self.LABELS:
+                            continue
+                        else:
+                            num = self.LABELS[label]
+                            if num == 1:
+                                addMulti = True
+                                self.LABEL_COUNTER[num] += 1.0 + self.additionalAddSmall
+                            else:
+                                self.LABEL_COUNTER[num] += 1.0
+                            label = self.one_hot(num)
+                    except Exception as e:
+                        print(e)
+                        print('error in line ' + str(i) + '. skipping...')
+                        continue
+
+
+                    segments.append([xs, ys, zs])
+                    labels.append(label)
+                    if addMulti:
+                        for j in range(self.additionalAddSmall):
+                            segments.append([xs,ys,zs])
+                            labels.append(label)
+
+                    num_data_collected = self.LABEL_COUNTER[0] + self.LABEL_COUNTER[1]
+
+                    if num_data_collected > num_data:
+                        break
+                    else:
+                        pbar.update(num_data_collected - old_num_data_collected)
+
+                reshaped_segments = np.asarray(segments, dtype= np.float32).reshape(-1, self.n_time_steps, self.n_features)
+                labels = np.asarray(labels, dtype = np.float32)
+                # print(reshaped_segments.shape)
+                # print(labels.shape)
+
+                X_train_tmp, X_test_tmp, y_train_tmp, y_test_tmp = train_test_split(
+                    reshaped_segments, labels, test_size=self.test_size, random_state=self.random_seed)
+
+                if X_train_tmp.shape[0] > 0:
+                    if X_train is None:
+                        X_train = X_train_tmp
+                        X_test = X_test_tmp
+                        y_train = y_train_tmp
+                        y_test = y_test_tmp
+                    else:
+                        X_train = np.concatenate((X_train, X_train_tmp), axis=0)
+                        X_test = np.concatenate((X_test, X_test_tmp), axis=0)
+                        y_train = np.concatenate((y_train, y_train_tmp), axis=0)
+                        y_test = np.concatenate((y_test, y_test_tmp), axis=0)
+
+        return X_train, X_test, y_train, y_test, self.LABEL_COUNTER
+
 
 if __name__ == "__main__":
     dm = DataManager()
