@@ -153,19 +153,22 @@ if __name__ == "__main__":
 
         if not model_set:
             try:
-                hr = HarRnn(config=config, debug=True, random_seed=42)
+                
+                hr = HarRnn(config=config, debug=True)
                 hr.updateOptimizer()
 
-                model = readArch(args.update)
-                readWeights(model, args.update)
+                model = readArch(args.model)
+                readWeights(model, args.model)
 
                 model.compile(loss='categorical_crossentropy',
                         optimizer=hr.optimizer,
                         metrics=['accuracy'])
+                print("Existing model loaded")
             except:
-                hr = HarRnn(config=config, debug=True, random_seed=42)
+                hr = HarRnn(config=config, debug=True)
                 hr.gen()
                 model = hr.getModel()
+                print("Train not existing model")
                 print(model.summary())
 
             model_set = True
@@ -235,3 +238,4 @@ if __name__ == "__main__":
         tfjs.converters.save_keras_model(model, args.model)
 
         print(confusion_matrix(Y_test, model.predict(X_test)))
+        training_counter += 1
