@@ -116,6 +116,11 @@ if __name__ == "__main__":
     if "data_per_day" in config:
         data_per_day = config["data_per_day"]
 
+    # only for shape determination
+    X_train, X_test, Y_train, Y_test, class_counter = dm.load_random(num_data=1)
+    config['timesteps'] = X_train.shape[1]
+    config['input_dim'] = X_train.shape[2]
+    config['n_classes'] = Y_train.shape[1]
 
     try:
         hr = HarRnn(config=config, debug=True)

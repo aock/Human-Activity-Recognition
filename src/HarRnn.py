@@ -72,9 +72,9 @@ class HarRnn():
     def updateModel(self):
         #self.concatCRNN()
         self.seqCRNN()
-        
+
     def seqCRNN(self):
-        
+
         timesteps = self.config['timesteps']
         input_dim = self.config['input_dim']
 
@@ -85,7 +85,7 @@ class HarRnn():
             reg = False
 
         input = Input(shape=(timesteps, input_dim))
- 
+
         # CNN
         cnn_out = None
 
@@ -94,15 +94,15 @@ class HarRnn():
             cnn_out = self.cnn(input, cnn_filters, reg)
         else:
             cnn_out = input
-        
-        # RNN after CNN 
+
+        # RNN after CNN
         rnn_out = None
         if "rnn" in network:
             rnn_size = self.config["network"]["rnn"]
             rnn_out = self.rnn(cnn_out, rnn_size, reg)
         else:
             rnn_out = cnn_out
-        
+
         # DNN after RNN
         dnn_out = None
         if "dnn" in network:
@@ -111,7 +111,7 @@ class HarRnn():
         else:
             dnn_out = rnn_out
 
-        
+
         out = Activation("softmax")(dnn_out)
 
         self.model = keras.models.Model(inputs=[input], outputs=out)
@@ -122,13 +122,13 @@ class HarRnn():
         timesteps = self.config['timesteps']
         input_dim = self.config['input_dim']
         n_classes = self.config['n_classes']
-         
+
         input = Input(shape=(timesteps, input_dim))
 
         # RNN
         rnn_size = [64,64]
         rnn_out = self.rnn(input, rnn_size)
-        
+
         # DNN after RNN
         rdnn_size = [32,8]
         rdnn_out = self.dnn(rnn_out, rdnn_size)
@@ -136,7 +136,7 @@ class HarRnn():
         # CNN
         cnn_filters = [(64,3),(32,3),(0,3)]
         cnn_out = self.cnn(input, cnn_filters)
-        
+
         # DNN after RNN
         cdnn_size = [32,8]
         cdnn_out = Flatten()(self.dnn(cnn_out, cdnn_size))
@@ -216,7 +216,7 @@ class HarRnn():
         #self.model.add(Activation('relu'))
         #self.model.add(Conv1D(32, 3, activation='relu'))
         #self.model.add(MaxPooling1D(3))
-        self.model.add(LSTM(64, return_sequences=True)) 
+        self.model.add(LSTM(64, return_sequences=True))
         self.model.add(LSTM(32, recurrent_regularizer=regularizers.l1(0.01)))
         self.model.add(Dropout(0.5))
         self.model.add(Dense(8) ) # war vorher

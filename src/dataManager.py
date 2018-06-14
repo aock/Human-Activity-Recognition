@@ -8,6 +8,7 @@ import logging
 import sys
 from tqdm import tqdm
 from random import shuffle
+from .filters import *
 
 class DataManager():
 
@@ -17,7 +18,16 @@ class DataManager():
                 test_size = 0.2,
                 n_time_steps = 200,
                 datafolder='data',
+                filter={
+                    'butter_low':{
+                        'order' : 6,
+                        'fs' : 30.0,
+                        'cutoff': 3.667
+                    }
+                },
                 additionalAddSmall=0):
+
+        self.filter = filter
 
         self.step = step
         self.random_seed = random_seed
@@ -95,35 +105,70 @@ class DataManager():
                     print('error in line ' + str(i) + '. skipping...')
                     continue
 
-
                 segments.append([xs, ys, zs])
+
+                if 'butter_low' in self.filter:
+                    # normalize raw data
+                    xs_norm = normalize_mean(xs)
+                    ys_norm = normalize_mean(ys)
+                    zs_norm = normalize_mean(zs)
+                    # butter filter
+                    butter_low = self.filter['butter_low']
+                    cutoff = butter_low['cutoff']
+                    fs = butter_low['fs']
+                    order = butter_low['order']
+                    xs_l = butter_lowpass_filter(xs_norm, cutoff, fs, order)
+                    ys_l = butter_lowpass_filter(ys_norm, cutoff, fs, order)
+                    zs_l = butter_lowpass_filter(zs_norm, cutoff, fs, order)
+                    # extend features
+                    segments[-1].extend( [xs_norm, ys_norm, zs_norm, xs_l, ys_l, zs_l] )
+
                 labels.append(label)
                 if addMulti:
                     for j in range(self.additionalAddSmall):
                         segments.append([xs,ys,zs])
+
+                        if 'butter_low' in self.filter:
+                            # normalize raw data
+                            xs_norm = normalize_mean(xs)
+                            ys_norm = normalize_mean(ys)
+                            zs_norm = normalize_mean(zs)
+                            # butter filter
+                            butter_low = self.filter['butter_low']
+                            cutoff = butter_low['cutoff']
+                            fs = butter_low['fs']
+                            order = butter_low['order']
+                            xs_l = butter_lowpass_filter(xs_norm, cutoff, fs, order)
+                            ys_l = butter_lowpass_filter(ys_norm, cutoff, fs, order)
+                            zs_l = butter_lowpass_filter(zs_norm, cutoff, fs, order)
+                            # extend features
+                            segments[-1].extend( [xs_norm, ys_norm, zs_norm, xs_l, ys_l, zs_l] )
+
                         labels.append(label)
 
 
+            reshaped_segments = np.asarray(segments, dtype= np.float32)
+            if reshaped_segments.shape[0] > 0:
 
-            reshaped_segments = np.asarray(segments, dtype= np.float32).reshape(-1, self.n_time_steps, self.n_features)
-            labels = np.asarray(labels, dtype = np.float32)
-            # print(reshaped_segments.shape)
-            # print(labels.shape)
+                reshaped_segments = reshaped_segments.transpose((0,2,1))
+                labels = np.asarray(labels, dtype = np.float32)
+                # print(reshaped_segments.shape)
+                # print(labels.shape)
 
-            X_train_tmp, X_test_tmp, y_train_tmp, y_test_tmp = train_test_split(
-                reshaped_segments, labels, test_size=self.test_size, random_state=self.random_seed)
+                X_train_tmp, X_test_tmp, y_train_tmp, y_test_tmp = train_test_split(
+                    reshaped_segments, labels, test_size=self.test_size, random_state=self.random_seed)
 
-            if X_train_tmp.shape[0] > 0:
-                if X_train is None:
-                    X_train = X_train_tmp
-                    X_test = X_test_tmp
-                    y_train = y_train_tmp
-                    y_test = y_test_tmp
-                else:
-                    X_train = np.concatenate((X_train, X_train_tmp), axis=0)
-                    X_test = np.concatenate((X_test, X_test_tmp), axis=0)
-                    y_train = np.concatenate((y_train, y_train_tmp), axis=0)
-                    y_test = np.concatenate((y_test, y_test_tmp), axis=0)
+                if X_train_tmp.shape[0] > 0:
+                    if X_train is None:
+                        X_train = X_train_tmp
+                        X_test = X_test_tmp
+                        y_train = y_train_tmp
+                        y_test = y_test_tmp
+                    else:
+                        X_train = np.concatenate((X_train, X_train_tmp), axis=0)
+                        X_test = np.concatenate((X_test, X_test_tmp), axis=0)
+                        y_train = np.concatenate((y_train, y_train_tmp), axis=0)
+                        y_test = np.concatenate((y_test, y_test_tmp), axis=0)
 
         return X_train, X_test, y_train, y_test, self.LABEL_COUNTER
 
@@ -145,9 +190,18 @@ class DataManager():
         old_num_data_collected = 0
         num_data_collected = 0
 
+
+
         with tqdm(total=num_data) as pbar:
 
+            interupt = False
+
             for filename in files:
+
+                print(filename)
+
+                if interupt:
+                    break
 
                 # print("read data from %s ..." % filename)
                 df = pd.read_csv(filename, header = None, names = self.columns)
@@ -158,7 +212,12 @@ class DataManager():
                 # print("number of samples found: %d" % len(df))
                 # print("reorganize data...")
 
+
                 for i in range(0, len(df) - self.n_time_steps, self.step):
+
+                    if interupt:
+                        break
+
                     old_num_data_collected = num_data_collected
 
                     xs = df['x-axis'].values[i: i + self.n_time_steps]
@@ -189,40 +248,79 @@ class DataManager():
                         print('error in line ' + str(i) + '. skipping...')
                         continue
 
+                    segments.append([xs,ys,zs])
 
-                    segments.append([xs, ys, zs])
+                    if 'butter_low' in self.filter:
+                        # normalize raw data
+                        xs_norm = normalize_mean(xs)
+                        ys_norm = normalize_mean(ys)
+                        zs_norm = normalize_mean(zs)
+                        # butter filter
+                        butter_low = self.filter['butter_low']
+                        cutoff = butter_low['cutoff']
+                        fs = butter_low['fs']
+                        order = butter_low['order']
+                        xs_l = butter_lowpass_filter(xs_norm, cutoff, fs, order)
+                        ys_l = butter_lowpass_filter(ys_norm, cutoff, fs, order)
+                        zs_l = butter_lowpass_filter(zs_norm, cutoff, fs, order)
+                        # extend features
+                        segments[-1].extend( [xs_norm, ys_norm, zs_norm, xs_l, ys_l, zs_l] )
+
                     labels.append(label)
                     if addMulti:
                         for j in range(self.additionalAddSmall):
                             segments.append([xs,ys,zs])
+
+                            if 'butter_low' in self.filter:
+                                # normalize raw data
+                                xs_norm = normalize_mean(xs)
+                                ys_norm = normalize_mean(ys)
+                                zs_norm = normalize_mean(zs)
+                                # butter filter
+                                butter_low = self.filter['butter_low']
+                                cutoff = butter_low['cutoff']
+                                fs = butter_low['fs']
+                                order = butter_low['order']
+                                xs_l = butter_lowpass_filter(xs_norm, cutoff, fs, order)
+                                ys_l = butter_lowpass_filter(ys_norm, cutoff, fs, order)
+                                zs_l = butter_lowpass_filter(zs_norm, cutoff, fs, order)
+                                # extend features
+                                segments[-1].extend( [xs_norm, ys_norm, zs_norm, xs_l, ys_l, zs_l] )
+
                             labels.append(label)
+
+                    # correct
+                    #print(segments[-1])
 
                     num_data_collected = self.LABEL_COUNTER[0] + self.LABEL_COUNTER[1]
 
                     if num_data_collected > num_data:
+                        interupt = True
                         break
                     else:
                         pbar.update(num_data_collected - old_num_data_collected)
 
-                reshaped_segments = np.asarray(segments, dtype= np.float32).reshape(-1, self.n_time_steps, self.n_features)
-                labels = np.asarray(labels, dtype = np.float32)
-                # print(reshaped_segments.shape)
-                # print(labels.shape)
 
-                X_train_tmp, X_test_tmp, y_train_tmp, y_test_tmp = train_test_split(
-                    reshaped_segments, labels, test_size=self.test_size, random_state=self.random_seed)
+                reshaped_segments = np.asarray(segments, dtype= np.float32)
+                if reshaped_segments.shape[0] > 0:
 
-                if X_train_tmp.shape[0] > 0:
-                    if X_train is None:
-                        X_train = X_train_tmp
-                        X_test = X_test_tmp
-                        y_train = y_train_tmp
-                        y_test = y_test_tmp
-                    else:
-                        X_train = np.concatenate((X_train, X_train_tmp), axis=0)
-                        X_test = np.concatenate((X_test, X_test_tmp), axis=0)
-                        y_train = np.concatenate((y_train, y_train_tmp), axis=0)
-                        y_test = np.concatenate((y_test, y_test_tmp), axis=0)
+                    reshaped_segments = reshaped_segments.transpose((0,2,1))
+                    labels = np.asarray(labels, dtype = np.float32)
+
+                    X_train_tmp, X_test_tmp, y_train_tmp, y_test_tmp = train_test_split(
+                        reshaped_segments, labels, test_size=self.test_size, random_state=self.random_seed)
+
+                    if X_train_tmp.shape[0] > 0:
+                        if X_train is None:
+                            X_train = X_train_tmp
+                            X_test = X_test_tmp
+                            y_train = y_train_tmp
+                            y_test = y_test_tmp
+                        else:
+                            X_train = np.concatenate((X_train, X_train_tmp), axis=0)
+                            X_test = np.concatenate((X_test, X_test_tmp), axis=0)
+                            y_train = np.concatenate((y_train, y_train_tmp), axis=0)
+                            y_test = np.concatenate((y_test, y_test_tmp), axis=0)
 
         return X_train, X_test, y_train, y_test, self.LABEL_COUNTER
 
