@@ -56,6 +56,11 @@ class EarlyStopping(callbacks.Callback):
             else:
                 print(self.monitor + ": %f >= %f" % (current,self.value))
 
+def join(l, sep):
+    out_str = ''
+    for i, el in enumerate(l):
+        out_str += '%s%s' % (el, sep)
+    return out_str[:-len(sep)]
 
 if __name__ == "__main__":
     # parse options
@@ -65,6 +70,8 @@ if __name__ == "__main__":
     parser.add_argument('-m','--model', type=str, help='update model: specify folfer containing weights.h5 and arch.json', required=True)
 
     parser.add_argument('-d','--dataDir', type=str, help='path to training data (.tdat)', required=False)
+    parser.add_argument('--analysisFile', type=str, help='path to analysis file', required=False)
+
     args = parser.parse_args()
 
     config = {
@@ -130,6 +137,15 @@ if __name__ == "__main__":
         print(model.summary())
 
 
+
+    analysisFile = ""
+    if args.analysisFile:
+        analysisFile = args.model + '/' + args.analysisFile
+        try:
+            os.remove(args.analysisFile)
+        except OSError:
+            pass
+
     while(True):
 
         print("starting training day: " + str(training_counter))
@@ -137,6 +153,7 @@ if __name__ == "__main__":
 
         X_train, X_test, Y_train, Y_test, class_counter = dm.load_random(num_data=data_per_day)
         #TODO: predict Y_train save loss and acc in file
+
 
         # load new when stair label is not existing
         while(class_counter[1] < 5):
@@ -168,8 +185,12 @@ if __name__ == "__main__":
                 print("using automatically determined class weights:")
                 pprint(cw)
 
+        if args.analysisFile:
 
-
+            scores = model.evaluate(X_test, Y_test)
+            score_str = join(scores, ',')
+            with open(analysisFile, "a") as myfile:
+                myfile.write(score_str + '\n')
 
         ##################################
         ###### training ##################
