@@ -1,0 +1,18 @@
+{
+    "network":{
+        "type":"seq",
+        "reg": false,
+        "cnn":[[128,3],[128,3]],
+        "rnn":[128,128],
+        "dnn":[64,128,128,32,2]
+    },
+    "batch_size": 2048,
+    "epochs": 50,
+    "optimizer": {
+        "name": "adam",
+        "lr": 0.0025
+    },
+    "class_weight" : "auto",
+    "additionalAddSmall": 3,
+    "data_per_day":150000
+}
