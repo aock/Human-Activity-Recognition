@@ -198,8 +198,6 @@ class DataManager():
 
             for filename in files:
 
-                print(filename)
-
                 if interupt:
                     break
 
