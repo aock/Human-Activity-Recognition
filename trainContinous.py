@@ -136,6 +136,7 @@ if __name__ == "__main__":
         print("data samples to learn: " + str(data_per_day))
 
         X_train, X_test, Y_train, Y_test, class_counter = dm.load_random(num_data=data_per_day)
+        #TODO: predict Y_train save loss and acc in file
 
         # load new when stair label is not existing
         while(class_counter[1] < 5):
