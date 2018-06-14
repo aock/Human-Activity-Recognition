@@ -149,6 +149,8 @@ if __name__ == "__main__":
             os.remove(args.analysisFile)
         except OSError:
             pass
+        if not os.path.exists(args.model):
+            os.makedirs(args.model)
 
     while(True):
 
