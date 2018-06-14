@@ -68,7 +68,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process Options.')
     parser.add_argument('-c','--config', type=str, help='config json file path')
     parser.add_argument('-m','--model', type=str, help='update model: specify folfer containing weights.h5 and arch.json', required=True)
-
     parser.add_argument('-d','--dataDir', type=str, help='path to training data (.tdat)', required=False)
     parser.add_argument('--analysisFile', type=str, help='path to analysis file', required=False)
 
