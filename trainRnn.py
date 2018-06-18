@@ -11,11 +11,14 @@ import sys
 from pprint import pprint
 from utils import confusion_matrix
 from src.HarRnn import HarRnn, meanSquaredWeightedError
-from src.dataManager import DataManager
+from src.dataManager import DataManager, DataGenerator
 import argparse
 import os
 from src.saveFunctions import *
 import math
+
+# PARAMETERS
+USE_DATA_GENERATOR = True
 
 
 def create_class_weight(labels_dict, mu=0.15):
@@ -24,8 +27,11 @@ def create_class_weight(labels_dict, mu=0.15):
 
     for key, value in labels_dict.items():
         v = float(value)
-        score = math.log(mu*total/v)
-        class_weight[key] = score if score > 1.0 else 1.0
+        if v == 0.0:
+            class_weight[key] = 5.0
+        else:
+            score = math.log(mu*total/v)
+            class_weight[key] = score if score > 1.0 else 1.0
 
     return class_weight
 
@@ -78,7 +84,8 @@ if __name__ == "__main__":
                 'optimizer': {
                     'name': 'rmsprop'
                 },
-                'additionalAddSmall': 0
+                'additionalAddSmall': 0,
+                'lowMemory':False
              }
 
     if args.config:
@@ -88,6 +95,11 @@ if __name__ == "__main__":
             data = json.load(f)
             config.update(data)
 
+
+    if config['lowMemory']:
+        USE_DATA_GENERATOR = True
+    else:
+        USE_DATA_GENERATOR = False
 
     # # for reproducibility
     # # https://github.com/fchollet/keras/issues/2280
@@ -109,14 +121,14 @@ if __name__ == "__main__":
     if args.dataDir:
         datafolder = args.dataDir
 
+    # datamanager for memory high consumption -> fast
     dm = DataManager(datafolder=datafolder, additionalAddSmall=config['additionalAddSmall'])
-    X_train, X_test, Y_train, Y_test, class_counter = dm.load_all()
+    # data generator for memory low consumption -> low speed
+    dg = DataGenerator(datafolder=datafolder, additionalAddSmall=config['additionalAddSmall'])
 
-    # from dataWISDM import load_data
-
-    # X_train, X_test, Y_train, Y_test, class_counter = load_data(filename='pretraining_data/data.txt')
-
-    # WISDM dataset
+    # determine shapes from dataset
+    info_gen = dg.get_next_batch(batch_size=1)
+    X_train,Y_train = next(info_gen)
     print("INPUT SHAPE")
     print(X_train.shape)
     config['timesteps'] = X_train.shape[1]
@@ -124,25 +136,22 @@ if __name__ == "__main__":
     config['n_classes'] = Y_train.shape[1]
     print('number of different labels found: %d' % config['n_classes'])
 
-    print('class_counter: ')
-    pprint(class_counter)
     ####################################
     ###### model creation #############
     ####################################
 
     model = None
     cw = None
-    if 'class_weight' in config:
-        if config['class_weight'] != 'auto':
-            print("using predefined class weights")
-            cw = config['class_weight']
-        else:
+    # if 'class_weight' in config:
+    #     if config['class_weight'] != 'auto':
+    #         print("using predefined class weights")
+    #         cw = config['class_weight']
+    #     else:
 
-            cw = create_class_weight(class_counter, mu=1.0)
-            print("using automatically determined class weights:")
-            pprint(cw)
-
-
+    #         cw = create_class_weight(class_counter, mu=1.0)
+    #         print("using automatically determined class weights:")
+    #         pprint(cw)
+    cw = {0:1,1:5}
 
     if args.update:
         hr = HarRnn(config=config, debug=True, random_seed=42)
@@ -201,14 +210,29 @@ if __name__ == "__main__":
         else:
             print("Early stopping with montor %s < %f " % (early_monitor, early_val) )
 
+    if USE_DATA_GENERATOR:
 
-    model.fit(X_train,
-            Y_train,
-            batch_size=batch_size,
-            validation_data=(X_test, Y_test),
-            epochs=epochs,
-            callbacks=cbacks,
-            class_weight=cw)
+        # determine input shape
+        train_data_gen = dg.get_next_batch(batch_size=batch_size)
+        val_data_gen = dg.get_next_batch(batch_size=batch_size/4)
+
+        model.fit_generator(generator=train_data_gen,
+                validation_data=val_data_gen,
+                epochs=epochs,
+                steps_per_epoch=20,
+                validation_steps=20,
+                class_weight={0:1,1:5})
+
+    else:
+        X_train, X_test, Y_train, Y_test, class_counter = dm.load_all()
+
+        model.fit(X_train,
+                Y_train,
+                batch_size=batch_size,
+                validation_data=(X_test, Y_test),
+                epochs=epochs,
+                callbacks=cbacks,
+                class_weight=cw)
 
 
     ##################################

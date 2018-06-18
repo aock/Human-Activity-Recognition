@@ -7,8 +7,8 @@ import numpy as np
 ntpath.basename("a/b/c")
 
 
-IN_FOLDER = 'import'
-OUT_FOLDER = 'export'
+IN_FOLDER = 'import/NRM'
+OUT_FOLDER = 'export/NRM'
 
 OUT_TEMPLATE = './' + OUT_FOLDER + '/NRM_%d.tdat'
 
@@ -96,13 +96,18 @@ def convert(in_data):
     last_down = 0
     last_up = 0
 
+    first_row = True
 
     for i,row in enumerate(in_data):
 
         entry = ['NoStairs', row[1], row[2], row[3] ]
 
+        if first_row:
+            last_down = row[-1]
+            last_up = row[-2]
+            first_row = False
         # downstairs!
-        if (row[-1] != last_down) or (row[-2] != last_up):
+        elif (row[-1] != last_down) or (row[-2] != last_up):
 
             last_down = row[-1]
             last_up = row[-2]
