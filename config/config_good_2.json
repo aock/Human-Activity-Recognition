@@ -1,13 +1,14 @@
 {
+    "n_hidden":[64,32,32],
     "network":{
         "type":"seq",
         "reg": false,
-        "cnn":[[32,3],[32,3]],
-        "rnn":[64,32],
+        "cnn":[[45,15],[36,5]],
+        "rnn":[64,64],
         "dnn":[8,2]
     },
     "batch_size": 1024,
-    "epochs": 30,
+    "epochs": 100,
     "optimizer": {
         "name": "adam",
         "lr": 0.0025
