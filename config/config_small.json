@@ -1,0 +1,24 @@
+{
+    "n_hidden":[64,32,32],
+    "network":{
+        "type":"seq",
+        "reg": true,
+        "cnn":[[32,3],[32,3],[0,3]],
+        "rnn":[32,16],
+        "dnn":[8,2]
+    },
+    "batch_size": 2048,
+    "epochs": 100,
+    "optimizer": {
+        "name": "adam",
+        "lr": 0.0025
+    },
+    "early_stopping": {
+        "val": 0.01,
+        "bigger": false,
+        "monitor": "val_loss"
+    },
+    "class_weight" : "auto",
+    "additionalAddSmall": 3
+
+}
