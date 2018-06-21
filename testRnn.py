@@ -14,7 +14,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Process Options.')
     parser.add_argument('-m','--model', type=str, help='model name', required=True)
-    parser.add_argument('-d','--sampleDir', type=str, help='path to dir with samples (.tdat)', required=True)
+    parser.add_argument('-d','--sampleDir', type=str, help='path to dir with samples (.tdat)', required=False)
+    parser.add_argument('-f','--sampleFile', type=str, help='path to file with samples (.tdat)', required=False)
     parser.add_argument('-l','--labelFile', type=str, help='path to json label file.', required=True )
     parser.add_argument('-e','--export', type=str, help='model name to export model as json', required=False)
 
@@ -36,7 +37,17 @@ if __name__ == "__main__":
     pprint(labels)
 
     dm = DataManager(datafolder=sampleDir, test_size=0.0)
-    X, _, Y, _, class_counter = dm.load_all()
+
+    X = None
+    Y = None
+    class_counter = None
+    if args.sampleDir:
+        X, _, Y, _, class_counter = dm.load_all()
+    elif args.sampleFile:
+        X, _, Y, _, class_counter = dm.load_file(args.sampleFile)
+    else:
+        print("ERROR: file or direction required for test (-f or -d)")
+
 
     print('class_counter: ')
     pprint(class_counter)
