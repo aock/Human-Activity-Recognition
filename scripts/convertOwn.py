@@ -85,6 +85,7 @@ if __name__ == "__main__":
 
     for i,filepath in enumerate(files):
 
+        print(filepath)
         label = ""
         if "stair" in filepath:
             print("stair: " + filepath)
@@ -99,7 +100,7 @@ if __name__ == "__main__":
             for line in in_file:
                 ll = line.strip().split(',')
                 entry = [label, float(ll[1]), float(ll[2]), float(ll[3])]
-                print(entry)
+
                 in_data.append(entry)
 
         out_data_str = dataToString(in_data)

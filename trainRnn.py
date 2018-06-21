@@ -232,6 +232,23 @@ if __name__ == "__main__":
                     validation_steps=20,
                     class_weight={0:1,1:5})
 
+        if args.update:
+            print("updating model...")
+            saveModel(model, args.update)
+            saveArch(model, args.update)
+            saveWeights(model, args.update)
+
+        if args.save:
+            print("saving model...")
+            saveModel(model, args.save)
+            saveArch(model, args.save)
+            saveWeights(model, args.save)
+
+        if args.export:
+            # save tensorflowjs model
+            print("exporting tfjs model...")
+            tfjs.converters.save_keras_model(model, args.export)
+
     else:
         X_train, X_test, Y_train, Y_test, class_counter = dm.load_all()
 
@@ -330,21 +347,6 @@ if __name__ == "__main__":
     ###### updates and saving ########
     ##################################
 
-    if args.update:
-        print("updating model...")
-        saveModel(model, args.update)
-        saveArch(model, args.update)
-        saveWeights(model, args.update)
 
-    if args.save:
-        print("saving model...")
-        saveModel(model, args.save)
-        saveArch(model, args.save)
-        saveWeights(model, args.save)
-
-    if args.export:
-        # save tensorflowjs model
-        print("exporting tfjs model...")
-        tfjs.converters.save_keras_model(model, args.export)
 
     print(confusion_matrix(Y_test, model.predict(X_test)))
