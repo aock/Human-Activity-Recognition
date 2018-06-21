@@ -62,6 +62,12 @@ class EarlyStopping(callbacks.Callback):
             else:
                 print(self.monitor + ": %f >= %f" % (current,self.value))
 
+def generate_score_dict(model, history):
+    ret_dict = {}
+    for k in history.history.keys():
+        ret_dict[k] = history.history[k][-1]
+
+    return ret_dict
 
 if __name__ == "__main__":
     # parse options
@@ -78,6 +84,8 @@ if __name__ == "__main__":
     config = {
                 'epochs': 60,
                 'save_each':10,
+                'save_best':True,
+                'save_best_met':'val_loss',
                 'batch_size': 1024,
                 'seq_size': 200,
                 'n_hidden': [64,64,64,64],
@@ -217,12 +225,12 @@ if __name__ == "__main__":
         train_data_gen = dg.get_next_batch(batch_size=batch_size)
         val_data_gen = dg.get_next_batch(batch_size=batch_size/4)
 
-        model.fit_generator(generator=train_data_gen,
-                validation_data=val_data_gen,
-                epochs=epochs,
-                steps_per_epoch=20,
-                validation_steps=20,
-                class_weight={0:1,1:5})
+        scores = model.fit_generator(generator=train_data_gen,
+                    validation_data=val_data_gen,
+                    epochs=epochs,
+                    steps_per_epoch=20,
+                    validation_steps=20,
+                    class_weight={0:1,1:5})
 
     else:
         X_train, X_test, Y_train, Y_test, class_counter = dm.load_all()
@@ -230,34 +238,92 @@ if __name__ == "__main__":
         curr_epoch = 0
         save_each = config['save_each']
 
+        save_best = config['save_best']
+
+        save_best_met = config['save_best_met']
+
         for curr_epoch in range(0,epochs,save_each):
             print("current epoch: " + str(curr_epoch))
-            model.fit(X_train,
-                Y_train,
-                batch_size=batch_size,
-                validation_data=(X_test, Y_test),
-                epochs=save_each,
-                callbacks=cbacks,
-                class_weight=cw)
+            history = model.fit(X_train,
+                            Y_train,
+                            batch_size=batch_size,
+                            validation_data=(X_test, Y_test),
+                            epochs=save_each,
+                            callbacks=cbacks,
+                            class_weight=cw)
+
+            results = generate_score_dict(model, history)
             try:
+
                 if args.update:
-                    print("updating model...")
-                    saveModel(model, args.update)
-                    saveArch(model, args.update)
-                    saveWeights(model, args.update)
+                    overwrite = True
+
+                    # check if saved model is better
+                    if save_best:
+                        old_results = readResults(args.update)
+                        if old_results:
+                            print("check if " + save_best_met + " increased")
+                            print("old: %f" % old_results[ save_best_met ])
+                            print("new: %f" % results[ save_best_met ])
+                            if old_results[ save_best_met ] < results[ save_best_met ]:
+                                overwrite = False
+
+                    if overwrite:
+                        print("updating model...")
+                        saveModel(model, args.update)
+                        saveArch(model, args.update)
+                        saveWeights(model, args.update)
+                        saveResults(args.update, results)
+                    else:
+                        print("old model is better")
 
                 if args.save:
-                    print("saving model...")
-                    saveModel(model, args.save)
-                    saveArch(model, args.save)
-                    saveWeights(model, args.save)
+                    # default overwrite
+                    overwrite = True
+                    # check if saved model is better
+                    if save_best:
+                        old_results = readResults(args.save)
+                        if old_results:
+                            print("check if " + save_best_met + " increased")
+                            print("old: %f" % old_results[ save_best_met ])
+                            print("new: %f" % results[ save_best_met ])
+                            if old_results[ save_best_met ] < results[ save_best_met ]:
+                                overwrite = False
 
-                if args.export:
-                    # save tensorflowjs model
-                    print("exporting tfjs model...")
-                    tfjs.converters.save_keras_model(model, args.export)
-            except:
+                    if overwrite:
+                        print("saving model...")
+                        saveModel(model, args.save)
+                        saveArch(model, args.save)
+                        saveWeights(model, args.save)
+                        saveResults(args.save, results)
+
+                    else:
+                        print("old model is better")
+
+                    if args.export:
+                        overwrite = True
+                        # check if saved model is better
+                        if save_best:
+                            old_results = readResults(args.export)
+                            if old_results:
+                                print("check if " + save_best_met + " increased")
+                                print("old: %f" % old_results[ save_best_met ])
+                                print("new: %f" % results[ save_best_met ])
+                                if old_results[ save_best_met ] < results[ save_best_met ]:
+                                    overwrite = False
+
+                        if overwrite:
+                            # save tensorflowjs model
+                            print("exporting tfjs model...")
+                            tfjs.converters.save_keras_model(model, args.export)
+                        else:
+                            print("old export is better")
+
+
+            except Exception as e:
                 print("error while saving model")
+                print(e)
+                exit()
 
 
     ##################################
