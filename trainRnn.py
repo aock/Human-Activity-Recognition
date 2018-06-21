@@ -77,6 +77,7 @@ if __name__ == "__main__":
 
     config = {
                 'epochs': 60,
+                'save_each':10,
                 'batch_size': 1024,
                 'seq_size': 200,
                 'n_hidden': [64,64,64,64],
@@ -226,13 +227,37 @@ if __name__ == "__main__":
     else:
         X_train, X_test, Y_train, Y_test, class_counter = dm.load_all()
 
-        model.fit(X_train,
+        curr_epoch = 0
+        save_each = config['save_each']
+
+        for curr_epoch in range(0,epochs,save_each):
+            print("current epoch: " + str(curr_epoch))
+            model.fit(X_train,
                 Y_train,
                 batch_size=batch_size,
                 validation_data=(X_test, Y_test),
-                epochs=epochs,
+                epochs=save_each,
                 callbacks=cbacks,
                 class_weight=cw)
+            try:
+                if args.update:
+                    print("updating model...")
+                    saveModel(model, args.update)
+                    saveArch(model, args.update)
+                    saveWeights(model, args.update)
+
+                if args.save:
+                    print("saving model...")
+                    saveModel(model, args.save)
+                    saveArch(model, args.save)
+                    saveWeights(model, args.save)
+
+                if args.export:
+                    # save tensorflowjs model
+                    print("exporting tfjs model...")
+                    tfjs.converters.save_keras_model(model, args.export)
+            except:
+                print("error while saving model")
 
 
     ##################################
