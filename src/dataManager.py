@@ -367,13 +367,10 @@ class DataGenerator():
 
         self.num_d = -1
 
-
     def get_next_batch(self, batch_size=None):
-
 
         if batch_size is None:
             batch_size = self.batch_size
-
 
         while(True):
             self.LABEL_COUNTER = {
@@ -400,20 +397,7 @@ class DataGenerator():
                     ys = df['y-axis'].values[i: i + self.n_time_steps]
                     zs = df['z-axis'].values[i: i + self.n_time_steps]
                     # filter
-
-                    # normalize raw data
-                    xs_norm = normalize_mean(xs)
-                    ys_norm = normalize_mean(ys)
-                    zs_norm = normalize_mean(zs)
-
-                    # butter filter
-                    butter_low = self.filter['butter_low']
-                    cutoff = butter_low['cutoff']
-                    fs = butter_low['fs']
-                    order = butter_low['order']
-                    xs_l = butter_lowpass_filter(xs_norm, cutoff, fs, order)
-                    ys_l = butter_lowpass_filter(ys_norm, cutoff, fs, order)
-                    zs_l = butter_lowpass_filter(zs_norm, cutoff, fs, order)
+                    xs,ys,zs = self.filter_data(xs,ys,zs)
 
                     label_num = 0
                     # label stuff (one hot)
@@ -431,7 +415,7 @@ class DataGenerator():
                         continue
 
                     # adding to buffer
-                    segments.append([xs_l,ys_l,zs_l])
+                    segments.append([xs,ys,zs])
                     labels.append(label)
                     self.LABEL_COUNTER[label_num] += 1.0
 
@@ -442,7 +426,7 @@ class DataGenerator():
 
                     if label_num == 1:
                         for j in range(self.additionalAddSmall):
-                            segments.append([xs_l,ys_l,zs_l])
+                            segments.append([xs,ys,zs])
                             labels.append(label)
                             self.LABEL_COUNTER[label_num] += 1.0
 
@@ -456,6 +440,29 @@ class DataGenerator():
         reshaped_segments = reshaped_segments.transpose((0,2,1))
         labels = np.asarray(labels, dtype = np.float32)
         return reshaped_segments, labels
+
+    def filter_data(self,xs,ys,zs):
+        xs_ret = xs
+        ys_ret = ys
+        zs_ret = zs
+        if 'butter_low' in self.filter:
+            xs_ret, ys_ret, zs_ret = self.butter_filter(xs_ret,ys_ret,zs_ret)
+
+        return xs_ret,ys_ret,zs_ret
+
+    def butter_filter(self,xs,ys,zs):
+        xs_norm = normalize_mean(xs)
+        ys_norm = normalize_mean(ys)
+        zs_norm = normalize_mean(zs)
+        # butter filter
+        butter_low = self.filter['butter_low']
+        cutoff = butter_low['cutoff']
+        fs = butter_low['fs']
+        order = butter_low['order']
+        xs_l = butter_lowpass_filter(xs_norm, cutoff, fs, order)
+        ys_l = butter_lowpass_filter(ys_norm, cutoff, fs, order)
+        zs_l = butter_lowpass_filter(zs_norm, cutoff, fs, order)
+        return xs_l,ys_l,zs_l
 
     def one_hot(self, num):
         return [int(i == num) for i in range(len(self.LABELS))]
