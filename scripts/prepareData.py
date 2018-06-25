@@ -18,7 +18,7 @@ if __name__ == "__main__":
                         required=False)
     args = parser.parse_args()
 
-    dm = DataManager(datafolder=args.data, test_size=0.0)
+    dm = DataManager(datafolder=args.data, test_size=0.0, step=1)
 
     X, _, y, _, class_counter = dm.load_all()
 
