@@ -48,6 +48,15 @@ class DataManager():
             1 : 0.0
         }
 
+    def load_prepared_data(self):
+        reshaped_segments = np.load(self.datafolder + '/train.npy')
+        labels = np.load(self.datafolder + '/labels.npy')
+
+        X_train, X_test, y_train, y_test = train_test_split(
+            reshaped_segments, labels, test_size=self.test_size, random_state=self.random_seed)
+
+        return X_train, X_test, y_train, y_test
+
     def load_file(self, filename):
 
         X_train = None
@@ -199,6 +208,8 @@ class DataManager():
                         0 : 0.0,
                         1 : 0.0
                     }
+
+        # raw files
 
         files = [filename for filename in glob.iglob(self.datafolder + '/**/*.tdat', recursive=True)]
 

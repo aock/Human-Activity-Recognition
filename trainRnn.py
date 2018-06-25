@@ -93,7 +93,8 @@ if __name__ == "__main__":
                     'name': 'rmsprop'
                 },
                 'additionalAddSmall': 0,
-                'lowMemory':False
+                'lowMemory':False,
+                'use_prepared_data':True
              }
 
     if args.config:
@@ -138,14 +139,24 @@ if __name__ == "__main__":
                        additionalAddSmall=config['additionalAddSmall'],
                        step=config['shift_train'])
 
+    X_train = None
+    X_test = None
+    Y_train = None
+    Y_test = None
     # determine shapes from dataset
-    info_gen = dg.get_next_batch(batch_size=1)
-    X_train,Y_train = next(info_gen)
-    print("INPUT SHAPE")
-    print(X_train.shape)
+    if config['use_prepared_data']:
+        X_train, X_test, Y_train, Y_test = dm.load_prepared_data()
+    else:
+        info_gen = dg.get_next_batch(batch_size=1)
+        X_train, Y_train = next(info_gen)
+
     config['timesteps'] = X_train.shape[1]
     config['input_dim'] = X_train.shape[2]
     config['n_classes'] = Y_train.shape[1]
+
+
+    print("INPUT SHAPE")
+    print(X_train.shape)
     print('number of different labels found: %d' % config['n_classes'])
 
     ####################################
@@ -256,7 +267,8 @@ if __name__ == "__main__":
             tfjs.converters.save_keras_model(model, args.export)
 
     else:
-        X_train, X_test, Y_train, Y_test, class_counter = dm.load_all()
+        if not config['use_prepared_data']:
+            X_train, X_test, Y_train, Y_test, class_counter = dm.load_all()
 
         curr_epoch = 0
         save_each = config['save_each']
