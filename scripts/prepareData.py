@@ -25,15 +25,15 @@ if __name__ == "__main__":
 
     dm = DataManager(datafolder=args.data, test_size=0.0, step=1)
 
-    X, _, y, _, class_counter = dm.load_all()
-
     if not os.path.exists(args.export):
         os.makedirs(args.export)
 
     counter = 0
 
+
     for counter,(X,y) in enumerate(dm.prepare_data(batch_size=args.size)):
-        np.savez(args.export + '/train_' + str(i), x=X,y=y)
+        print(counter)
+        np.savez(args.export + '/train_' + str(counter), x=X,y=y)
 
     print("exported %d files" % counter)
 
