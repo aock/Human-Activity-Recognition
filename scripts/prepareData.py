@@ -21,9 +21,14 @@ if __name__ == "__main__":
                         type=int,
                         help='num samples per file',
                         required=False)
+    parser.add_argument('--step',
+                        default=5,
+                        type=int,
+                        help='step of interval',
+                        required=False)
     args = parser.parse_args()
 
-    dm = DataManager(datafolder=args.data, test_size=0.0, step=1)
+    dm = DataManager(datafolder=args.data, test_size=0.0, step=args.step)
 
     if not os.path.exists(args.export):
         os.makedirs(args.export)
