@@ -112,6 +112,65 @@ class DataManager():
 
         return X_train, X_test, y_train, y_test, self.LABEL_COUNTER
 
+    def load_test_file(self, filename):
+        X_train = None
+        X_test = None
+        y_train = None
+        y_test = None
+
+        self.LABEL_COUNTER = {
+                        0 : 0.0,
+                        1 : 0.0
+                    }
+
+        df = pd.read_csv(filename, header = None, names = self.columns)
+
+        segments = []
+        labels = []
+
+        for i in range(0, len(df) - self.n_time_steps, self.step):
+            xs = df['x-axis'].values[i: i + self.n_time_steps]
+            ys = df['y-axis'].values[i: i + self.n_time_steps]
+            zs = df['z-axis'].values[i: i + self.n_time_steps]
+            xs,ys,zs = self.butter_filter(xs,ys,zs)
+
+            addMulti = False
+
+            try:
+                label = stats.mode(df['activity'][i: i + self.n_time_steps])[0][0]
+
+                # if label == 'Stairs':
+                #     print('Stairs')
+                # else:
+                #     print('-')
+                if label not in self.LABELS:
+                    continue
+                else:
+                    num = self.LABELS[label]
+                    if num == 1:
+                        addMulti = True
+                        self.LABEL_COUNTER[num] += 1.0 + self.additionalAddSmall
+                    else:
+                        self.LABEL_COUNTER[num] += 1.0
+                    label = self.one_hot(num)
+            except Exception as e:
+                print(e)
+                print('error in line ' + str(i) + '. skipping...')
+                continue
+
+            segments.append([xs, ys, zs])
+            labels.append(label)
+            if addMulti:
+                for j in range(self.additionalAddSmall):
+                    segments.append([xs, ys, zs])
+                    labels.append(label)
+
+
+        X = np.asarray(segments, dtype= np.float32).transpose((0,2,1))
+        y = np.asarray(labels, dtype = np.float32)
+
+        return X,y,len(df)
+
     def one_hot(self, num):
         return [int(i == num) for i in range(len(self.LABELS))]
 
