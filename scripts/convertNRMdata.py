@@ -13,7 +13,7 @@ OUT_FOLDER = 'export/NRM'
 OUT_TEMPLATE = './' + OUT_FOLDER + '/NRM_%d.tdat'
 
 # model for prediction
-modelname = 'model2000'
+modelname = 'modelSmall7'
 model = readArch(modelname)
 readWeights(model, modelname)
 
@@ -56,7 +56,7 @@ def fillUnsafe(in_data, ids):
     ids.sort(reverse=True)
 
     for id in ids:
-        if len(in_data) <= id + 1:
+        if len(in_data) <= id + 1 or id < 0:
             print("error id out of range")
         else:
             next_entry = in_data[id + 1]
@@ -102,6 +102,8 @@ def convert(in_data):
 
         entry = ['NoStairs', row[1], row[2], row[3] ]
 
+        print(i)
+
         if first_row:
             last_down = row[-1]
             last_up = row[-2]
@@ -121,7 +123,8 @@ def convert(in_data):
             ids_unsafe = [ ( len(out_data) - timesteps_stair_min - i - 1) for i in range(dur_unsafe)]
 
             for id_unsafe in ids_unsafe:
-                out_data[id_unsafe][0] = 'Unsafe'
+                if id_unsafe >= 0 and id_unsafe < len(out_data):
+                    out_data[id_unsafe][0] = 'Unsafe'
 
 
             out_data = fillUnsafe(out_data, ids_unsafe)
