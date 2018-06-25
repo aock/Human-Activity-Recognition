@@ -88,8 +88,7 @@ if __name__ == "__main__":
                 'save_best_met':'val_loss',
                 'batch_size': 1024,
                 'seq_size': 200,
-                'n_hidden': [64,64,64,64],
-                'dataset': 'WISDM',
+                'shift_data':20,
                 'optimizer': {
                     'name': 'rmsprop'
                 },
@@ -131,9 +130,13 @@ if __name__ == "__main__":
         datafolder = args.dataDir
 
     # datamanager for memory high consumption -> fast
-    dm = DataManager(datafolder=datafolder, additionalAddSmall=config['additionalAddSmall'])
+    dm = DataManager(datafolder=datafolder,
+                     additionalAddSmall=config['additionalAddSmall'],
+                     step=config['shift_train'])
     # data generator for memory low consumption -> low speed
-    dg = DataGenerator(datafolder=datafolder, additionalAddSmall=config['additionalAddSmall'])
+    dg = DataGenerator(datafolder=datafolder,
+                       additionalAddSmall=config['additionalAddSmall'],
+                       step=config['shift_train'])
 
     # determine shapes from dataset
     info_gen = dg.get_next_batch(batch_size=1)
@@ -161,6 +164,9 @@ if __name__ == "__main__":
     #         print("using automatically determined class weights:")
     #         pprint(cw)
     cw = {0:1,1:5}
+
+    if "class_weight" in config and config["class_weight"] != "auto":
+        cw = {k:v for k,v in enumerate(config["class_weight"])}
 
     if args.update:
         hr = HarRnn(config=config, debug=True, random_seed=42)
