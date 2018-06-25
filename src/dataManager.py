@@ -48,14 +48,43 @@ class DataManager():
             1 : 0.0
         }
 
+    def load_prepared_data_yield(self):
+
+        files = [filename for filename in glob.iglob(self.datafolder + '/*.npz', recursive=True)]
+
+        print("found %d files" % len(files))
+        for file in tqdm(files):
+
+            npzfile = np.load(file)
+
+            print(npzfile.files)
+
+            reshaped_segments = npzfile['x']
+            labels = npzfile['y']
+            print(reshaped_segments.shape)
+            print(labels.shape)
+
+            yield reshaped_segments,labels
+
+        return
+
     def load_prepared_data(self):
-        reshaped_segments = np.load(self.datafolder + '/train.npy')
-        labels = np.load(self.datafolder + '/labels.npy')
 
-        X_train, X_test, y_train, y_test = train_test_split(
-            reshaped_segments, labels, test_size=self.test_size, random_state=self.random_seed)
+        print("load prepared data...")
 
-        return X_train, X_test, y_train, y_test
+        it_prep = self.load_prepared_data_yield()
+        X,y = next(it_prep)
+
+        for X_tmp, y_tmp in it_prep:
+            print("read shape")
+            print(X_tmp.shape)
+            print(y_tmp.shape)
+            X = np.concatenate( (X,X_tmp) )
+            y = np.concatenate( (y,y_tmp) )
+
+        return X,y
+
+
 
     def load_file(self, filename):
 
@@ -275,6 +304,90 @@ class DataManager():
 
         return X_train, X_test, y_train, y_test, self.LABEL_COUNTER
 
+
+    def prepare_data(self, batch_size=100000):
+
+        self.LABEL_COUNTER = {
+                        0 : 0.0,
+                        1 : 0.0
+                    }
+
+        files = [filename for filename in glob.iglob(self.datafolder + '/**/*.tdat', recursive=True)]
+        shuffle(files)
+        old_num_data_collected = 0
+        num_data_collected = 0
+
+        segments = []
+        labels = []
+
+        for filename in files:
+            df = pd.read_csv(filename, header = None, names = self.columns)
+
+            # shifting sequence
+            for i in range(0, len(df) - self.n_time_steps, self.step):
+                old_num_data_collected = num_data_collected
+                # data in sequence
+                xs = df['x-axis'].values[i: i + self.n_time_steps]
+                ys = df['y-axis'].values[i: i + self.n_time_steps]
+                zs = df['z-axis'].values[i: i + self.n_time_steps]
+                # filter
+
+                # normalize raw data
+                xs_norm = normalize_mean(xs)
+                ys_norm = normalize_mean(ys)
+                zs_norm = normalize_mean(zs)
+
+                # butter filter
+                butter_low = self.filter['butter_low']
+                cutoff = butter_low['cutoff']
+                fs = butter_low['fs']
+                order = butter_low['order']
+                xs_l = butter_lowpass_filter(xs_norm, cutoff, fs, order)
+                ys_l = butter_lowpass_filter(ys_norm, cutoff, fs, order)
+                zs_l = butter_lowpass_filter(zs_norm, cutoff, fs, order)
+
+                label_num = 0
+                # label stuff (one hot)
+                try:
+                    label = stats.mode(df['activity'][i: i + self.n_time_steps])[0][0]
+
+                    if label not in self.LABELS:
+                        continue
+                    else:
+                        label_num = self.LABELS[label]
+                        label = self.one_hot(label_num)
+                except Exception as e:
+                    print(e)
+                    print('error in line ' + str(i) + '. skipping...')
+                    continue
+
+                # adding to buffer
+                segments.append([xs_l,ys_l,zs_l])
+                labels.append(label)
+                self.LABEL_COUNTER[label_num] += 1.0
+
+                if len(labels) == batch_size:
+                    yield self.convert_lists(segments, labels)
+                    segments = []
+                    labels = []
+
+                if label_num == 1:
+                    for j in range(self.additionalAddSmall):
+                        segments.append([xs_l,ys_l,zs_l])
+                        labels.append(label)
+                        self.LABEL_COUNTER[label_num] += 1.0
+
+                        if len(labels) == batch_size:
+                            yield self.convert_lists(segments, labels)
+                            segments = []
+                            labels = []
+
+        if len(segments) > 0:
+            yield self.convert_lists(segments, labels)
+            segments = []
+            labels = []
+
+        return
 
     def get_next_batch(self, batch_size=None):
         if batch_size is None:

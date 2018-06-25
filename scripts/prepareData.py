@@ -16,6 +16,11 @@ if __name__ == "__main__":
                         type=str,
                         help='model name to export model as json',
                         required=False)
+    parser.add_argument('-s','--size',
+                        default=100000,
+                        type=int,
+                        help='num samples per file',
+                        required=False)
     args = parser.parse_args()
 
     dm = DataManager(datafolder=args.data, test_size=0.0, step=1)
@@ -25,5 +30,21 @@ if __name__ == "__main__":
     if not os.path.exists(args.export):
         os.makedirs(args.export)
 
-    np.save(args.export + '/train', X)
-    np.save(args.export + '/labels',y)
+    counter = 0
+
+    for counter,(X,y) in enumerate(dm.prepare_data(batch_size=args.size)):
+        np.savez(args.export + '/train_' + str(i), x=X,y=y)
+
+    print("exported %d files" % counter)
+
+    ## test loading
+
+    # dm = DataManager(datafolder=args.export)
+
+    # X,y = dm.load_prepared_data()
+
+    # print("final shape")
+    # print(X.shape)
+    # print(y.shape)
+
+
