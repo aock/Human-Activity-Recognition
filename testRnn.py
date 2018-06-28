@@ -28,7 +28,6 @@ def percentage(lst):
 
     return res_lst
 
-
 def count_ascend(lst):
     ascend_cnt = 0
     old = 0
@@ -49,6 +48,8 @@ if __name__ == "__main__":
     parser.add_argument('-f','--sampleFile', type=str, help='path to file with samples (.tdat)', required=False)
     parser.add_argument('-l','--labelFile', type=str, help='path to json label file.', required=False )
     parser.add_argument('-e','--export', type=str, help='model name to export model as json', required=False)
+
+    parser.add_argument('-c','--csvDir', type=str, help='path to dir with two files csv and tdat', required=False)
 
     args = parser.parse_args()
 
@@ -100,7 +101,6 @@ if __name__ == "__main__":
     elif args.sampleFile:
         X, y, num_acc = dm.load_test_file(args.sampleFile)
 
-
         print(num_acc)
         pred = 0
         try:
@@ -140,7 +140,10 @@ if __name__ == "__main__":
             interval[1] = i_global
 
             for i in range(interval[0],interval[1]):
-                label_mat[i].append(pred_hr[i_local])
+                if i_local >= pred_hr.shape[0]:
+                    break
+                if i < len(label_mat):
+                    label_mat[i].append(pred_hr[i_local])
 
         percent_labels = percentage(label_mat)
         percent_labels = np.asarray(percent_labels)
@@ -152,8 +155,9 @@ if __name__ == "__main__":
 
         stairs = count_ascend(real_labels)
 
-        t = np.arange(0, num_acc_predicted )
+        # t = np.arange(0, num_acc_predicted )
         real_labels = np.asarray(real_labels)
+        t = np.arange(0, real_labels.shape[0])
 
         plt.figure(1)
         plt.subplot(211)
@@ -161,18 +165,155 @@ if __name__ == "__main__":
         axes.set_ylim([-0.1,1.1])
         plt.plot(t, real_labels, '.', label='%d stairs' % stairs)
         plt.plot(t, percent_labels, '-', label='percentage' )
+
+
         plt.legend()
 
         plt.subplot(212)
         axes = plt.gca()
         axes.set_ylim([-0.1,1.1])
+
+
         plt.plot(np.arange(0,pred_stairs.shape[0]), pred_stairs, '-', label='prediction stairs' )
 
         plt.legend()
         plt.show()
 
 
+    elif args.csvDir:
 
+        # interval
+        view = [450000, -1]
+
+
+        csv_file = args.csvDir + '/real.csv'
+        tdat_file = args.csvDir + '/conv.tdat'
+
+
+
+        ###################
+        ####### CSV #######
+        ###################
+
+        acc_csv = []
+        stair_csv = []
+        last_sum = 0
+
+        with open(args.csvDir + '/real.csv', 'r') as f:
+            for line in f:
+                line = line.strip().split(',')[2:]
+                line[0] = float(line[0])
+                line[1] = float(line[1])
+                line[2] = float(line[2])
+
+                line[3] = int(line[3])
+                line[4] = int(line[4])
+
+                if (line[3] + line[4]) != last_sum:
+                    last_sum = line[3] + line[4]
+
+                acc_csv.append( [line[0], line[1], line[2]] )
+                stair_csv.append( last_sum )
+
+
+        stair_csv = np.asarray(stair_csv)
+        stair_csv = stair_csv[view[0]: view[1]]
+
+        acc_csv = np.asarray(acc_csv)
+        acc_csv = acc_csv[view[0]: view[1]]
+
+
+
+        ###################
+        ###### TDAT #######
+        ###################
+
+        X, y, num_acc = dm.load_test_file(tdat_file)
+        print(num_acc)
+        pred = 0
+        try:
+            pred = model.predict(X)
+        except:
+            a = 0
+
+        num_seq = X.shape[0]
+        seq_len = X.shape[1]
+        label_mat = []
+        print(X.shape)
+        print(pred.shape)
+        # prediction human readable
+        pred_hr = np.argmax(pred, axis=1)
+
+        pred_stairs = pred[:,1]
+
+        print(pred_hr.shape)
+
+        timesteps = 20
+
+        c = 0
+
+        interval = [0,0]
+
+        num_acc_predicted = seq_len + timesteps * (num_seq - 1)
+
+        for i in range( num_acc_predicted ):
+            label_mat.append([])
+
+        for i_local,i_global in enumerate(range(seq_len,num_acc,timesteps)):
+            # update interval
+            interval[0] = i_global-seq_len
+            interval[1] = i_global
+
+            for i in range(interval[0],interval[1]):
+                if i_local >= pred_hr.shape[0]:
+                    break
+                if i < len(label_mat):
+                    label_mat[i].append(pred_hr[i_local])
+
+        percent_labels = percentage(label_mat)
+        percent_labels = np.asarray(percent_labels)
+        percent_labels = percent_labels[view[0]: view[1]]
+
+        real_labels = []
+        for l in label_mat:
+            mc = most_common(l)
+            real_labels.append( mc )
+
+        stairs = count_ascend(real_labels)
+
+        # t = np.arange(0, num_acc_predicted )
+        real_labels = np.asarray(real_labels)
+        real_labels = real_labels[view[0]: view[1]]
+
+
+
+        ##############
+        #### PLOT ####
+        ##############
+
+        plt.figure(1)
+        plt.plot(stair_csv, '.', label='%d stairs real' % stair_csv[-1])
+        plt.plot(percent_labels, '-', label='percentage' )
+        plt.legend()
+        plt.show()
+        # plt.subplot(211)
+        # axes = plt.gca()
+        # axes.set_ylim([-0.1,1.1])
+        # plt.plot(t, real_labels, '.', label='%d stairs' % stairs)
+        # plt.plot(t, percent_labels, '-', label='percentage' )
+
+
+        # plt.legend()
+
+        # plt.subplot(212)
+        # axes = plt.gca()
+        # axes.set_ylim([-0.1,1.1])
+
+
+        # plt.plot(np.arange(0,pred_stairs.shape[0]), pred_stairs, '-', label='prediction stairs' )
+
+        # plt.legend()
+        # plt.show()
 
 
 
