@@ -183,7 +183,7 @@ if __name__ == "__main__":
     elif args.csvDir:
 
         # interval
-        view = [450000, -1]
+        view = [0, -1]
 
 
         csv_file = args.csvDir + '/real.csv'
