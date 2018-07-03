@@ -7,8 +7,8 @@ import numpy as np
 ntpath.basename("a/b/c")
 
 
-IN_FOLDER = 'import/NRM'
-OUT_FOLDER = 'export/NRM'
+IN_FOLDER = 'import/NRM/auto_gen'
+OUT_FOLDER = 'export/NRM/auto_gen'
 
 OUT_TEMPLATE = './' + OUT_FOLDER + '/NRM_%d.tdat'
 

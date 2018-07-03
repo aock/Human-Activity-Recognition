@@ -14,7 +14,7 @@ if __name__ == "__main__":
     parser.add_argument('-e','--export',
                         default='preparedData',
                         type=str,
-                        help='model name to export model as json',
+                        help='export directory name',
                         required=False)
     parser.add_argument('-s','--size',
                         default=100000,
@@ -41,15 +41,4 @@ if __name__ == "__main__":
         np.savez(args.export + '/train_' + str(counter), x=X,y=y)
 
     print("exported %d files" % counter)
-
-    ## test loading
-
-    # dm = DataManager(datafolder=args.export)
-
-    # X,y = dm.load_prepared_data()
-
-    # print("final shape")
-    # print(X.shape)
-    # print(y.shape)
-
 

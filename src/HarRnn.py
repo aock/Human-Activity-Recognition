@@ -70,7 +70,6 @@ class HarRnn():
         self.compileModel()
 
     def updateModel(self):
-        #self.concatCRNN()
         self.seqCRNN()
 
     def seqCRNN(self):
@@ -197,68 +196,6 @@ class HarRnn():
 
         # build model
         return cnn_l[-1]
-
-    def rcnn(self):
-        # collect information
-
-        n_hidden = self.config['n_hidden']
-        timesteps = self.config['timesteps']
-        input_dim = self.config['input_dim']
-        n_classes = self.config['n_classes']
-
-
-        # build model
-        elu = Elu(alpha=1.0)
-
-        self.model = Sequential()
-        self.model.add(Conv1D(32, 5, input_shape=(timesteps, input_dim) ))
-        #self.model.add(BatchNormalization())
-        #self.model.add(Activation('relu'))
-        #self.model.add(Conv1D(32, 3, activation='relu'))
-        #self.model.add(MaxPooling1D(3))
-        self.model.add(LSTM(64, return_sequences=True))
-        self.model.add(LSTM(32, recurrent_regularizer=regularizers.l1(0.01)))
-        self.model.add(Dropout(0.5))
-        self.model.add(Dense(8) ) # war vorher
-        self.model.add(ELU(alpha=1.0))
-        self.model.add(Dropout(0.5))
-        self.model.add(Dense(n_classes, activation='softmax' ))
-
-    def rcnn2(self):
-        # collect information
-
-        n_hidden = self.config['n_hidden']
-        timesteps = self.config['timesteps']
-        input_dim = self.config['input_dim']
-        n_classes = self.config['n_classes']
-
-
-        # build model
-        elu = Elu(alpha=1.0)
-
-        input = keras.layers.Input(shape=(timesteps, input_dim))
-        # splitted network 1: input -> cnn -> cnn_out_3
-        cnn_out_1 = Conv1D(32, 3, input_shape=(timesteps, input_dim ), activation='relu')(input)
-        cnn_out_2 = Conv1D(32, 3, activation='relu')(cnn_out_1)
-        cnn_out_3 = MaxPooling1D(3)(cnn_out_2)
-        cnn_out_4 = Conv1D(64, 3, activation='relu')(cnn_out_3)
-        cnn_out_5 = Conv1D(64, 3, activation='relu')(cnn_out_4)
-        cnn_out_6 = keras.layers.Flatten()(cnn_out_5)
-
-        # splitted network 2: input -> rnn -> rnn_out
-        lstm_out_1 = LSTM(64, return_sequences=True)(input)
-        lstm_out_2 = LSTM(64, recurrent_regularizer=regularizers.l1(0.01))(lstm_out_1)
-        lstm_out_3 = Dropout(0.5)(lstm_out_2)
-
-        # merge rnn and cnn
-        added = keras.layers.concatenate([cnn_out_6, lstm_out_3])
-
-        # two fully connected layers with regularization
-        out_1 = Dense(32)(added)
-        out_2 = ELU(alpha=1.0)(out_1)
-        out_3 = Dropout(0.1)(out_2)
-        out_4 = Dense(n_classes, activation='softmax' )(out_3)
-        self.model = keras.models.Model(inputs=[input], outputs=out_4)
 
     def updateOptimizer(self):
         opt_opt = self.config['optimizer']
