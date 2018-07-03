@@ -1,0 +1,24 @@
+{
+    "shift_train":1,
+    "network":{
+        "type":"seq",
+        "reg": false,
+        "rnn":[64,32],
+        "dnn":[8,2]
+    },
+    "batch_size": 2048,
+    "epochs": 100,
+    "optimizer": {
+        "name": "adam",
+        "lr": 0.0025
+    },
+    "early_stopping": {
+        "val": 0.001,
+        "bigger": false,
+        "monitor": "val_loss"
+    },
+    "class_weight" : [1,1.01],
+    "additionalAddSmall": 3,
+    "data_per_day":100000,
+    "use_prepared_data":true
+}
