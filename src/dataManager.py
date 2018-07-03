@@ -11,10 +11,15 @@ from random import shuffle
 from .filters import *
 
 class DataManager():
+    """
+    DataManager for:
+    - reading and preparing 'tdat' files in specified directory.
+    - reading already prepared 'tdat' files from specified directory.
+    Output can be directly used for HarRnn.py generated neural network
+    """
 
     def __init__(self, step=20,
                 random_seed=42,
-                n_features = 3,
                 test_size = 0.2,
                 n_time_steps = 200,
                 datafolder='data',
@@ -26,12 +31,22 @@ class DataManager():
                     }
                 },
                 additionalAddSmall=0):
+        """ Constructor of DataManager
+
+        Keyword Arguments:
+            step {int} -- step of shifting interval for sequence generation (default: {20})
+            random_seed {int} -- random seed (default: {42})
+            test_size {float} -- percentage of test data (default: {0.2})
+            n_time_steps {int} -- sequence length in number of timesteps (default: {200})
+            datafolder {str} -- data folder for searching 'tdat' files or prepared files (default: {'data'})
+            filter {dict} -- filter specification (default: {{'butter_low':{'order' : 6,'fs' : 30.0,'cutoff': 3.667}}})
+            additionalAddSmall {int} -- duplicate stair class data (default: {0})
+        """
 
         self.filter = filter
 
         self.step = step
         self.random_seed = random_seed
-        self.n_features = n_features
         self.test_size = test_size
         self.n_time_steps = n_time_steps
         self.datafolder = datafolder
@@ -49,6 +64,12 @@ class DataManager():
         }
 
     def load_prepared_data_yield(self):
+        """ load prepared data. one yield per file
+
+        Yields:
+            np.array -- acceleration sequences
+            np.array -- one hot labels
+        """
 
         files = [filename for filename in glob.iglob(self.datafolder + '/*.npz', recursive=True)]
 
@@ -69,6 +90,12 @@ class DataManager():
         return
 
     def load_prepared_data(self):
+        """ load all prepared data
+
+        Returns:
+            np.array -- acceleration sequences
+            np.array -- one hot labels
+        """
 
         print("load prepared data...")
 
@@ -85,11 +112,37 @@ class DataManager():
         return X,y
 
     def train_test_split(self, X, y):
+        """ split data in train and test(validation) data
+
+        Arguments:
+            X {np.array} -- sequences of acceleration data
+            y {np.array} -- one hot labels
+
+        Returns:
+            np.array -- sequences of acceleration data for training
+            np.array -- sequences of acceleration data for testing
+            np.array -- one hot labels for training
+            np.array -- one hot labels for testing
+        """
+
         X_train, X_test, y_train, y_test = train_test_split(
             X, y, test_size=self.test_size, random_state=self.random_seed)
         return X_train, X_test, y_train, y_test
 
     def load_file(self, filename):
+        """ Loading one specific file
+
+        Arguments:
+            filename {string} -- filename to load
+
+        Returns:
+            np.array -- sequences of acceleration data for training
+            np.array -- sequences of acceleration data for testing
+            np.array -- one hot labels for training
+            np.array -- one hot labels for testing
+            dict -- Label Counter dictionary
+        """
+
 
         X_train = None
         X_test = None
@@ -154,6 +207,17 @@ class DataManager():
         return X_train, X_test, y_train, y_test, self.LABEL_COUNTER
 
     def load_test_file(self, filename):
+        """ loading specific test file
+
+        Arguments:
+            filename {string} -- testfile name
+
+        Returns:
+            np.array -- X: acceleration sequences
+            np.array -- y: one hot labels
+            int      -- len(df): number of acceleration data in total
+        """
+
         X_train = None
         X_test = None
         y_train = None
@@ -213,9 +277,31 @@ class DataManager():
         return X,y,len(df)
 
     def one_hot(self, num):
+        """ Generate one hot design from number
+
+        Arguments:
+            num {int} -- number of label (0 -> 'NoStairs', 1 -> 'Stairs')
+
+        Returns:
+            np.array -- resulting one hot design
+        """
+
         return [int(i == num) for i in range(len(self.LABELS))]
 
     def butter_filter(self,xs,ys,zs):
+        """ butter lowpass filter multidimensional
+
+        Arguments:
+            xs {np.array} -- acceleration sequence x
+            ys {np.array} -- acceleration sequence y
+            zs {np.array} -- acceleration sequence z
+
+        Returns:
+            np.array -- xs_l: filtered acceleration x
+            np.array -- ys_l: filtered acceleration y
+            np.array -- zs_l: filtered acceleration z
+        """
+
         xs_norm = normalize_mean(xs)
         ys_norm = normalize_mean(ys)
         zs_norm = normalize_mean(zs)
@@ -230,6 +316,16 @@ class DataManager():
         return xs_l,ys_l,zs_l
 
     def load_all(self):
+        """ loading all 'tdat' files of data_directory
+
+        Returns:
+            np.array -- sequences of acceleration data for training
+            np.array -- sequences of acceleration data for testing
+            np.array -- one hot labels for training
+            np.array -- one hot labels for testing
+            dict -- Label Counter dictionary
+        """
+
 
         X_train = None
         X_test = None
@@ -309,6 +405,15 @@ class DataManager():
 
 
     def prepare_data(self, batch_size=100000):
+        """ prepare data into chunks of size batch_size. yields the chunks
+
+        Keyword Arguments:
+            batch_size {int} -- chunk size for splitting data (default: {100000})
+
+        Yields:
+            np.array -- acceleration sequences of size batch_size (except of last)
+            np.array -- one hot labels of size batch_size (except of last)
+        """
 
         self.LABEL_COUNTER = {
                         0 : 0.0,
@@ -393,6 +498,16 @@ class DataManager():
         return
 
     def get_next_batch(self, batch_size=None):
+        """ Random data loading with given chunk size. Yield version
+
+        Keyword Arguments:
+            batch_size {[type]} -- [description] (default: {None})
+
+        Yields:
+            np.array -- acceleration sequences of size batch_size (except of last)
+            np.array -- one hot labels of size batch_size (except of last)
+        """
+
         if batch_size is None:
             batch_size = self.batch_size
 
@@ -474,6 +589,17 @@ class DataManager():
                                 labels = []
 
     def load_random_gen(self, num_data=100000):
+        """ Random training and test data with given chunk size. Yield version
+
+        Keyword Arguments:
+            batch_size {[type]} -- [description] (default: {None})
+
+        Yields:
+            np.array -- training acceleration sequences of size batch_size (except of last)
+            np.array -- test acceleration sequences of size batch_size (except of last)
+            np.array -- training one hot labels of size batch_size (except of last)
+            np.array -- test one hot labels of size batch_size (except of last)
+        """
         batch_size = num_data
 
         self.LABEL_COUNTER = {
@@ -562,6 +688,17 @@ class DataManager():
                             pbar.update(1)
 
     def convert_lists(self, segments, labels):
+        """convert acceleration sequences (segments) and labels to np.arrays
+
+        Arguments:
+            segments {list} -- list of acceleration sequences
+            labels {list} -- list of one hot labels
+
+        Returns:
+            np.array -- reshaped_segments: numpy array of sequences
+            np.array -- labels: numpy array of one hot labels
+        """
+
         reshaped_segments = np.asarray(segments, dtype= np.float32)
         reshaped_segments = reshaped_segments.transpose((0,2,1))
         labels = np.asarray(labels, dtype = np.float32)
@@ -569,6 +706,10 @@ class DataManager():
 
 
 class DataGenerator():
+    """
+    DataGenerator for loading data without using too much memory.
+    Currently not used
+    """
 
     def __init__(self, step=20,
                 test_size = 0.2,
@@ -744,6 +885,11 @@ class DataGenerator():
 
 
 if __name__ == "__main__":
+
+    """
+    Test of Datamanger. Example usage.
+    """
+
     # dm = DataManager()
     # X_train, X_test, y_train, y_test, label_counter = dm.load_all()
 

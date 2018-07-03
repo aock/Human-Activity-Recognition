@@ -21,15 +21,16 @@ class Elu(ELU):
         self.__name__ = "ELU"
         super(Elu, self).__init__(**kwargs)
 
-"""
-Class for Human-activity-Recognition Recurrent neural network.
-Use in code:
-...
-hn = HarRnn()
-model = hn.gen()
-...
-"""
+
 class HarRnn():
+    """
+    Class for Human-activity-Recognition Recurrent neural network.
+    Use in code:
+    ...
+    hn = HarRnn()
+    model = hn.gen()
+    ...
+    """
 
     model = None
     optimizer = None

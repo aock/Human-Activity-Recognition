@@ -10,7 +10,7 @@ import json
 import sys
 from pprint import pprint
 from utils import confusion_matrix
-from src.HarRnn import HarRnn, meanSquaredWeightedError
+from src.HarRnn import HarRnn
 from src.dataManager import DataManager, DataGenerator
 import argparse
 import os
@@ -182,7 +182,7 @@ if __name__ == "__main__":
         cw = {k:v for k,v in enumerate(config["class_weight"])}
 
     if args.update:
-        hr = HarRnn(config=config, debug=True, random_seed=42)
+        hr = HarRnn(config=config)
         hr.updateOptimizer()
 
         model = readArch(args.update)
@@ -192,7 +192,7 @@ if __name__ == "__main__":
                   optimizer=hr.optimizer,
                   metrics=['accuracy'])
     else:
-        hr = HarRnn(config=config, debug=True, random_seed=42)
+        hr = HarRnn(config=config)
         hr.gen()
         model = hr.getModel()
         print(model.summary())
