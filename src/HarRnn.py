@@ -15,17 +15,20 @@ import json
 import sys
 from pprint import pprint
 
-label_weights = np.array([1/100, 30])
-w = K.variable(value=label_weights, dtype='float32', name='loss_weights')
-
-def meanSquaredWeightedError(target, output):
-    return K.mean( K.square(w * (target - output) ) )
-
+# fix for error in build in keras Elu class
 class Elu(ELU):
     def __init__(self, **kwargs):
         self.__name__ = "ELU"
         super(Elu, self).__init__(**kwargs)
 
+"""
+Class for Human-activity-Recognition Recurrent neural network.
+Use in code:
+...
+hn = HarRnn()
+model = hn.gen()
+...
+"""
 class HarRnn():
 
     model = None
@@ -35,36 +38,26 @@ class HarRnn():
     def __init__(self,
                  config={'batch_size': 1024,
                         'seq_size': 200,
-                        'n_hidden': [64,64,64,64],
-                        'dataset': 'WISDM',
+                        'network': {
+                            'type': 'seq',
+                            'reg': False,
+                            'rnn':[64,32],
+                            'dnn':[8,2]
+                        },
                         'optimizer': {
-                            'name': 'rmsprop'
+                            'name': 'adam',
+                            'lr': 0.0025
                         }
                     },
-                 debug = True,
                  random_seed = 42):
 
         self.config = config
 
-        # np.random.seed(random_seed)
-        # tf.set_random_seed(random_seed)
-
-        if debug:
-            # for reproducibility
-            # https://github.com/fchollet/keras/issues/2280
-
-
-
-            # session_conf = tf.ConfigProto(
-            #     intra_op_parallelism_threads=1,
-            #     inter_op_parallelism_threads=1
-            # )
-
-
-            sess = tf.Session(graph=tf.get_default_graph())
-            K.set_session(sess)
-
     def gen(self):
+        """
+        Generates the complete model, optimizer. Compiles the model
+        """
+
         self.updateModel()
         self.updateOptimizer()
         self.compileModel()
@@ -73,86 +66,65 @@ class HarRnn():
         self.seqCRNN()
 
     def seqCRNN(self):
+        """
+        Generates sequential crnn model from config specifications.
+        """
+
 
         timesteps = self.config['timesteps']
         input_dim = self.config['input_dim']
 
-        network = self.config["network"]
+        network = self.config['network']
 
         reg = True
-        if "reg" in network and network["reg"] == False:
+        if 'reg' in network and network['reg'] == False:
             reg = False
 
         input = Input(shape=(timesteps, input_dim))
 
-        # CNN
+        # generate CNN from config
         cnn_out = None
 
-        if "cnn" in network:
-            cnn_filters = self.config["network"]["cnn"]
+        if 'cnn' in network:
+            cnn_filters = self.config['network']['cnn']
             cnn_out = self.cnn(input, cnn_filters, reg)
         else:
             cnn_out = input
 
-        # RNN after CNN
+        # generate RNN from config
         rnn_out = None
-        if "rnn" in network:
-            rnn_size = self.config["network"]["rnn"]
+        if 'rnn' in network:
+            rnn_size = self.config['network']['rnn']
             rnn_out = self.rnn(cnn_out, rnn_size, reg)
         else:
             rnn_out = cnn_out
 
-        # DNN after RNN
+        # generate DNN from config
         dnn_out = None
-        if "dnn" in network:
-            dnn_size = self.config["network"]["dnn"]
+        if 'dnn' in network:
+            dnn_size = self.config['network']['dnn']
             dnn_out = self.dnn(rnn_out, dnn_size, reg)
         else:
             dnn_out = rnn_out
 
-
-        out = Activation("softmax")(dnn_out)
+        out = Activation('softmax')(dnn_out)
 
         self.model = keras.models.Model(inputs=[input], outputs=out)
 
-
-    def concatCRNN(self):
-        n_hidden = self.config['n_hidden']
-        timesteps = self.config['timesteps']
-        input_dim = self.config['input_dim']
-        n_classes = self.config['n_classes']
-
-        input = Input(shape=(timesteps, input_dim))
-
-        # RNN
-        rnn_size = [64,64]
-        rnn_out = self.rnn(input, rnn_size)
-
-        # DNN after RNN
-        rdnn_size = [32,8]
-        rdnn_out = self.dnn(rnn_out, rdnn_size)
-
-        # CNN
-        cnn_filters = [(64,3),(32,3),(0,3)]
-        cnn_out = self.cnn(input, cnn_filters)
-
-        # DNN after RNN
-        cdnn_size = [32,8]
-        cdnn_out = Flatten()(self.dnn(cnn_out, cdnn_size))
-
-        # merge
-        concat = concatenate([rdnn_out,cdnn_out])
-
-        # dnn after concat
-        dnn_size = [16,16,2]
-        dnn_out = self.dnn(concat, dnn_size)
-
-
-        self.model = keras.models.Model(inputs=[input], outputs=dnn_out)
-
-
     def rnn(self, input, rnn_size=[64,32], reg=True):
-        # build model
+        """generating rnn from list
+
+        Arguments:
+            input {keras.layer} -- output from last layer as input of rnn
+
+        Keyword Arguments:
+            rnn_size {list} -- layer sizes (default: {[64,32]})
+            reg {bool} -- regularize layers (default: {True})
+
+        Returns:
+            keras.layer -- output layer of rnn
+        """
+
 
         lstm_l = [input]
         for i in range(len(rnn_size)-1):
@@ -166,10 +138,22 @@ class HarRnn():
         else:
             lstm_l.append(LSTM(rnn_size[-1])(lstm_l[-1]) )
 
-
         return lstm_l[-1]
 
     def dnn(self, input, n_hidden=[32,2], reg=True):
+        """ generate deep neural network from layer sizes
+
+        Arguments:
+            input {keras.layer} -- last output layer -> input layer of dnn
+
+        Keyword Arguments:
+            n_hidden {list} -- [description] (default: {[32,2]})
+            reg {bool} -- [description] (default: {True})
+
+        Returns:
+            keras.layer -- output layer of dnn
+        """
+
         dnn_l = [input]
 
         for i in range(len(n_hidden)-1):
@@ -183,7 +167,18 @@ class HarRnn():
         return dnn_l[-1]
 
     def cnn(self, input, filters=[(32,3),(32,3),(64,3),(64,3)], reg=True):
-        # collect information
+        """[summary]
+
+        Arguments:
+            input {keras.layer} -- last output layer of nn -> input layer of cnn
+
+        Keyword Arguments:
+            filters {list} -- list of number of filters and strides. if number of filters eq 0 -> max pooling (default: {[(32,3),(32,3),(64,3),(64,3)]})
+            reg {bool} -- regularize convolutional layers (default: {True})
+
+        Returns:
+            keras.layer -- output layer of cnn
+        """
 
         cnn_l = [input]
 
@@ -198,6 +193,10 @@ class HarRnn():
         return cnn_l[-1]
 
     def updateOptimizer(self):
+        """
+        generating and updating optimizer
+        """
+
         opt_opt = self.config['optimizer']
 
         print('Using Optimizer: ' + opt_opt['name'])
@@ -249,13 +248,19 @@ class HarRnn():
         pass
 
     def compileModel(self):
+        """
+        compile model for training
+        """
 
         self.model.compile(loss='categorical_crossentropy',
                   optimizer=self.optimizer,
                   metrics=['accuracy'])
-        # self.model.compile(loss=meanSquaredWeightedError,
-        #           optimizer=self.optimizer,
-        #           metrics=['accuracy', meanSquaredWeightedError])
 
     def getModel(self):
+        """get compiled model
+
+        Returns:
+            keras.model -- the compiled model
+        """
+
         return self.model
