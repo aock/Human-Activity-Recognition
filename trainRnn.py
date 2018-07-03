@@ -145,7 +145,9 @@ if __name__ == "__main__":
     Y_test = None
     # determine shapes from dataset
     if config['use_prepared_data']:
-        X_train, X_test, Y_train, Y_test = dm.load_prepared_data()
+        X,y = dm.load_prepared_data()
+
+        X_train, X_test, Y_train, Y_test = dm.train_test_split(X,y)
     else:
         info_gen = dg.get_next_batch(batch_size=1)
         X_train, Y_train = next(info_gen)

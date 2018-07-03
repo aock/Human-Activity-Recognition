@@ -84,7 +84,10 @@ class DataManager():
 
         return X,y
 
-
+    def train_test_split(self, X, y):
+        X_train, X_test, y_train, y_test = train_test_split(
+            X, y, test_size=self.test_size, random_state=self.random_seed)
+        return X_train, X_test, y_train, y_test
 
     def load_file(self, filename):
 
