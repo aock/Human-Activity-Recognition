@@ -20,5 +20,5 @@
     "class_weight" : [1,1.01],
     "additionalAddSmall": 3,
     "data_per_day":100000,
-    "use_prepared_data":false
+    "use_prepared_data":true
 }
